@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Health Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f5f5;
+        }
+        
+        body {
+            padding: 16px;
+            overflow-y: auto;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 20px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 16px;
+            margin-top: 0;
+        }
+        
+        h2 {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 400;
+            background: white;
+            color: #333;
+            border: 0.5px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .tab-button.active {
+            font-weight: 500;
+            background: #378ADD;
+            color: white;
+            border-color: #378ADD;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 0.5px solid #ddd;
+        }
+        
+        .food-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 0.5px solid #ddd;
+        }
+        
+        .food-title {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .grid-2-small {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            display: block;
+            margin-bottom: 6px;
+        }
+        
+        label.small {
+            font-size: 12px;
+            color: #666;
+            font-weight: 400;
+        }
+        
+        input[type="text"],
+        input[type="date"],
+        input[type="time"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+            border: 0.5px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+        
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #378ADD;
+            box-shadow: 0 0 0 2px rgba(55, 138, 221, 0.1);
+        }
+        
+        .med-row {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .save-button {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #378ADD;
+            color: white;
+            border: 0.5px solid #378ADD;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .save-button:active {
+            transform: scale(0.98);
+        }
+        
+        .entry-item {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 0.5px solid #ddd;
+        }
+        
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .entry-datetime {
+            margin: 0 0 4px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .entry-total {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .entry-goal {
+            margin: 4px 0 0 0;
+            font-size: 12px;
+        }
+        
+        .entry-goal.met {
+            color: #0F6E56;
+        }
+        
+        .entry-goal.exceeded {
+            color: #D4537E;
+        }
+        
+        .entry-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .entry-buttons button {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+            border: 0.5px solid #ddd;
+            background: white;
+            color: #333;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        .entry-buttons button:hover {
+            background: #f5f5f5;
+        }
+        
+        .entry-buttons button.delete {
+            background: #f8f0f0;
+            border-color: #ddd;
+        }
+        
+        .calculated {
+            font-size: 13px;
+            color: #378ADD;
+            font-weight: 500;
+            padding: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dog Health Tracker</h1>
+
+        <div id="drive-sync-bar" style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:16px; padding:10px 12px; background:white; border:0.5px solid #ddd; border-radius:8px; font-size:13px;">
+            <span id="sync-status" style="color:#666;">Not connected to Google Drive</span>
+            <button id="drive-connect-btn" onclick="connectGoogleDrive()" style="padding:6px 12px; font-size:13px; background:#378ADD; color:white; border:none; border-radius:6px; cursor:pointer; white-space:nowrap;">Connect Google Drive</button>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchView('entry')">New Entry</button>
+            <button class="tab-button" onclick="switchView('food-summary')">Food Summary</button>
+            <button class="tab-button" onclick="switchView('meds-summary')">Meds Summary</button>
+            <button class="tab-button" onclick="switchView('summary')">Daily Summary</button>
+        </div>
+        
+        <!-- Entry View -->
+        <div id="entry-view">
+            <div class="card">
+                <h2>Date & Time</h2>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="small">Date</label>
+                        <input type="date" id="date" />
+                    </div>
+                    <div class="form-group">
+                        <label class="small">Time</label>
+                        <input type="time" id="time" />
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Food</h2>
+                <div id="foods-container"></div>
+            </div>
+            
+            <div class="card">
+                <h2>Medications</h2>
+                <div id="meds-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;"></div>
+            </div>
+            
+            <div class="card">
+                <h2>How is he feeling?</h2>
+                <div style="display: flex; gap: 12px; margin-bottom: 12px; align-items: center;">
+                    <input type="checkbox" id="skip-feeling" checked style="width: 18px; height: 18px; cursor: pointer;" />
+                    <label for="skip-feeling" style="margin: 0; cursor: pointer; font-size: 14px; color: #666;">Do not log</label>
+                </div>
+                <div id="feeling-container" class="form-group" style="display: none;">
+                    <label style="margin-bottom: 12px;">Feeling scale (1-10)</label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="range" id="feeling" min="1" max="10" value="7" style="flex: 1; height: 6px; padding: 0;" />
+                        <span id="feeling-value" style="font-size: 16px; font-weight: 500; color: #378ADD; min-width: 30px; text-align: center;">7</span>
+                    </div>
+                    <div style="font-size: 12px; color: #999; margin-top: 8px; display: flex; justify-content: space-between;">
+                        <span>Poor</span>
+                        <span>Excellent</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Weight</h2>
+                <div style="display: flex; gap: 12px; margin-bottom: 12px; align-items: center;">
+                    <input type="checkbox" id="skip-weight" checked style="width: 18px; height: 18px; cursor: pointer;" />
+                    <label for="skip-weight" style="margin: 0; cursor: pointer; font-size: 14px; color: #666;">Do not log</label>
+                </div>
+                <div id="weight-container" class="form-group" style="display: none;">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="small">Weight</label>
+                            <input type="number" id="weight" placeholder="0" step="0.1" />
+                        </div>
+                        <div class="form-group">
+                            <label class="small">Unit</label>
+                            <select id="weight-unit" style="width: 100%; padding: 8px; font-size: 14px; border: 0.5px solid #ddd; border-radius: 8px;">
+                                <option value="lbs">lbs</option>
+                                <option value="kg">kg</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="small">Location</label>
+                        <input type="text" id="weight-location" placeholder="e.g., Home, Vet Clinic, Pet Store" />
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Notes</h2>
+                <div class="form-group">
+                    <textarea id="notes" placeholder="Any observations or notes..."></textarea>
+                </div>
+            </div>
+            
+            <button class="save-button" onclick="saveEntry()">Save Entry</button>
+        </div>
+        
+        <!-- Food Summary View -->
+        <div id="food-summary-view" class="hidden">
+            <div style="margin-bottom: 16px;">
+                <button onclick="exportToCSV()" style="padding: 10px 16px; font-size: 14px; background: #378ADD; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">📊 Export All Data</button>
+            </div>
+            
+            <div class="card">
+                <h2>Daily kCal Intake</h2>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="calorieChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Food Breakdown by Day</h2>
+                <div style="position: relative; height: 350px;">
+                    <canvas id="foodBreakdownChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Weight Over Time</h2>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Meds Summary View -->
+        <div id="meds-summary-view" class="hidden">
+            <div style="margin-bottom: 16px;">
+                <button onclick="exportToCSV()" style="padding: 10px 16px; font-size: 14px; background: #378ADD; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">📊 Export All Data</button>
+            </div>
+            
+            <div class="card">
+                <h2>Medication Schedule</h2>
+                <div id="medsHeatmap" style="overflow-x: auto;"></div>
+            </div>
+            
+            <div class="card">
+                <h2>Feeling Over Time</h2>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="feelingTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Summary View -->
+        <div id="summary-view" class="hidden">
+            <h2>Recent Entries</h2>
+            <button onclick="exportToCSV()" style="margin-bottom: 16px; padding: 10px 16px; font-size: 14px; background: #639922; color: white; border: 0.5px solid #3B6D11; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                ⬇ Export All Data to CSV
+            </button>
+            <div id="entries-container"></div>
+        </div>
+    </div>
+    
+    <script>
+        // ===== GOOGLE DRIVE SYNC =====
+        const GOOGLE_CLIENT_ID = '1085853822208-7ehv31k8humkucdph8ovgmjc95a01kee.apps.googleusercontent.com';
+        const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+        const DRIVE_FILENAME = 'dog_health_tracker_data.json';
+
+        let driveFileId = localStorage.getItem('driveFileId') || null;
+        let accessToken = null;
+        let tokenClient = null;
+
+        function setSyncStatus(msg, isError) {
+            const el = document.getElementById('sync-status');
+            if (el) {
+                el.textContent = msg;
+                el.style.color = isError ? '#c33' : '#666';
+            }
+        }
+
+        function initGoogleAuth() {
+            if (typeof google === 'undefined' || !google.accounts) {
+                // GIS script hasn't loaded yet, try again shortly
+                setTimeout(initGoogleAuth, 300);
+                return;
+            }
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: DRIVE_SCOPE,
+                callback: (response) => {
+                    if (response.error) {
+                        setSyncStatus('Google sign-in failed. Tap Connect to try again.', true);
+                        return;
+                    }
+                    accessToken = response.access_token;
+                    localStorage.setItem('driveConnected', 'true');
+                    document.getElementById('drive-connect-btn').textContent = 'Reconnect Google Drive';
+                    syncFromDrive();
+                }
+            });
+
+            // If previously connected, try to silently reconnect without a popup
+            if (localStorage.getItem('driveConnected') === 'true') {
+                tokenClient.requestAccessToken({ prompt: '' });
+            }
+        }
+
+        function connectGoogleDrive() {
+            if (!tokenClient) {
+                setSyncStatus('Still loading Google sign-in, try again in a second...', true);
+                return;
+            }
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+
+        async function driveApiFetch(url, options = {}) {
+            if (!accessToken) throw new Error('Not authenticated');
+            options.headers = Object.assign({}, options.headers, { 'Authorization': `Bearer ${accessToken}` });
+            const res = await fetch(url, options);
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`Drive API error ${res.status}: ${text}`);
+            }
+            return res;
+        }
+
+        async function findDriveFile() {
+            if (driveFileId) return driveFileId;
+            const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files?q=name%3D%27${encodeURIComponent(DRIVE_FILENAME)}%27%20and%20trashed%3Dfalse&spaces=drive&fields=files(id,name)`);
+            const data = await res.json();
+            if (data.files && data.files.length > 0) {
+                driveFileId = data.files[0].id;
+                localStorage.setItem('driveFileId', driveFileId);
+                return driveFileId;
+            }
+            return null;
+        }
+
+        async function createDriveFile(content) {
+            const metadata = { name: DRIVE_FILENAME, mimeType: 'application/json' };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([content], { type: 'application/json' }));
+            const res = await driveApiFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+                method: 'POST',
+                body: form
+            });
+            const data = await res.json();
+            driveFileId = data.id;
+            localStorage.setItem('driveFileId', driveFileId);
+            return driveFileId;
+        }
+
+        async function updateDriveFile(fileId, content) {
+            await driveApiFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: content
+            });
+        }
+
+        async function downloadDriveFile(fileId) {
+            const res = await driveApiFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+            return await res.text();
+        }
+
+        async function syncFromDrive() {
+            if (!accessToken) return;
+            try {
+                setSyncStatus('Syncing from Google Drive...');
+                const fileId = await findDriveFile();
+                if (fileId) {
+                    const content = await downloadDriveFile(fileId);
+                    entries = content ? JSON.parse(content) : [];
+                    try { localStorage.setItem('dogHealthEntries', JSON.stringify(entries)); } catch (e) {}
+                    renderSummary();
+                    setSyncStatus('Synced with Google Drive ✓');
+                } else {
+                    // No file on Drive yet, push whatever is stored locally right now
+                    await pushToDrive();
+                    setSyncStatus('Synced with Google Drive ✓');
+                }
+            } catch (err) {
+                console.error(err);
+                setSyncStatus('Could not reach Google Drive - using local data', true);
+            }
+        }
+
+        async function pushToDrive() {
+            if (!accessToken) return; // not signed in yet, local save already happened
+            try {
+                setSyncStatus('Saving to Google Drive...');
+                const content = JSON.stringify(entries);
+                let fileId = driveFileId || await findDriveFile();
+                if (fileId) {
+                    await updateDriveFile(fileId, content);
+                } else {
+                    await createDriveFile(content);
+                }
+                setSyncStatus('Synced with Google Drive ✓');
+            } catch (err) {
+                console.error(err);
+                setSyncStatus('Could not save to Drive - saved locally only', true);
+            }
+        }
+
+        function loadCustomMedications() {
+            try {
+                const saved = localStorage.getItem('customMedications');
+                if (saved) {
+                    const customMeds = JSON.parse(saved);
+                    Object.assign(medDefaults, customMeds);
+                }
+                
+                // Load deleted medications and remove them
+                const deleted = localStorage.getItem('deletedMedications');
+                if (deleted) {
+                    const deletedMeds = JSON.parse(deleted);
+                    deletedMeds.forEach(med => {
+                        delete medDefaults[med];
+                    });
+                }
+            } catch (e) {
+                console.warn('Could not load custom medications');
+            }
+        }
+
+        function loadCustomFoods() {
+            try {
+                const saved = localStorage.getItem('customFoods');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    Object.assign(foodCalories, data.calories || {});
+                    Object.assign(foodNames, data.names || {});
+                    Object.assign(foodTargets, data.targets || {});
+                    if (data.order) foodOrder = data.order;
+                    if (data.deleted) deletedFoods = data.deleted;
+                }
+            } catch (e) {
+                console.warn('Could not load custom foods');
+            }
+        }
+
+        function saveCustomFoods() {
+            try {
+                localStorage.setItem('customFoods', JSON.stringify({
+                    calories: foodCalories,
+                    names: foodNames,
+                    targets: foodTargets,
+                    order: foodOrder,
+                    deleted: deletedFoods
+                }));
+            } catch (e) {
+                console.warn('Could not save custom foods');
+            }
+        }
+
+        function addNewFood(key, name, kcalPerGram, targetGrams) {
+            foodCalories[key] = kcalPerGram;
+            foodNames[key] = name;
+            foodTargets[key] = targetGrams;
+            if (!foodOrder.includes(key)) foodOrder.push(key);
+            saveCustomFoods();
+            renderFoodInputs();
+        }
+
+        function deleteFood(key) {
+            if (confirm(`Remove "${foodNames[key]}" from the Food section?\n\nIt will stay in your CSV exports and Food Summary charts.`)) {
+                if (!deletedFoods.includes(key)) deletedFoods.push(key);
+                foodOrder = foodOrder.filter(f => f !== key);
+                saveCustomFoods();
+                renderFoodInputs();
+            }
+        }
+
+        function moveFoodUp(key) {
+            const idx = foodOrder.indexOf(key);
+            if (idx > 0) {
+                foodOrder.splice(idx, 1);
+                foodOrder.splice(idx - 1, 0, key);
+                saveCustomFoods();
+                renderFoodInputs();
+            }
+        }
+
+        function moveFoodDown(key) {
+            const idx = foodOrder.indexOf(key);
+            if (idx < foodOrder.length - 1) {
+                foodOrder.splice(idx, 1);
+                foodOrder.splice(idx + 1, 0, key);
+                saveCustomFoods();
+                renderFoodInputs();
+            }
+        }
+
+        function saveCustomMedications() {
+            try {
+                // Extract only custom medications (those not in the original list)
+                const originalMedKeys = ['prednisone', 'atopica', 'denamarin', 'melatonin', 'probiotic', 'zofran', 'cerenia', 'gabapentin'];
+                const customMeds = {};
+                Object.keys(medDefaults).forEach(key => {
+                    if (!originalMedKeys.includes(key)) {
+                        customMeds[key] = medDefaults[key];
+                    }
+                });
+                localStorage.setItem('customMedications', JSON.stringify(customMeds));
+            } catch (e) {
+                console.warn('Could not save custom medications');
+            }
+        }
+
+        function saveDeletionList() {
+            try {
+                const originalMedKeys = ['prednisone', 'atopica', 'denamarin', 'melatonin', 'probiotic', 'zofran', 'cerenia', 'gabapentin'];
+                const deletedMeds = originalMedKeys.filter(med => !medDefaults[med]);
+                localStorage.setItem('deletedMedications', JSON.stringify(deletedMeds));
+            } catch (e) {
+                console.warn('Could not save deletion list');
+            }
+        }
+
+        const defaultFoodCalories = {
+            farmersDog: 0.945,
+            wynwood: 1.029,
+            homemadeChicken: 1.450,
+            homemadeBeef: 1.450
+        };
+        
+        const defaultFoodNames = {
+            farmersDog: "Farmer's Dog Low Fat",
+            wynwood: "Wynwood Low Fat",
+            homemadeChicken: "Homemade Chicken & Rice",
+            homemadeBeef: "Homemade Beef & Rice"
+        };
+        
+        // Mutable food objects (custom foods added at runtime)
+        let foodCalories = Object.assign({}, defaultFoodCalories);
+        let foodNames = Object.assign({}, defaultFoodNames);
+        let foodTargets = {}; // target grams per day
+        let foodOrder = Object.keys(defaultFoodNames); // tracks display order
+        let deletedFoods = []; // foods removed from New Entry but kept in CSV/charts
+        
+        const medDefaults = {
+            prednisone: ['0.5mg', '0.75mg', '1mg'],
+            atopica: ['25mg'],
+            denamarin: ['1 pill'],
+            melatonin: ['1.5mg', '3mg'],
+            probiotic: ['1/2', '1'],
+            zofran: ['4mg', '8mg'],
+            cerenia: ['8mg', '16mg'],
+            gabapentin: ['25mg', '50mg']
+        };
+        
+        let entries = [];
+        let editingEntryId = null;
+        
+        // Chart instances
+        let calorieChartInstance = null;
+        let foodBreakdownChartInstance = null;
+        let weightChartInstance = null;
+        let feelingTrendChartInstance = null;
+        
+        // Initialize
+        function init() {
+            loadEntries();
+            loadCustomMedications();
+            loadCustomFoods();
+            
+            // Restore Cerenia and Gabapentin if they were accidentally deleted
+            if (!medDefaults['cerenia']) {
+                medDefaults['cerenia'] = ['8mg', '16mg'];
+            }
+            if (!medDefaults['gabapentin']) {
+                medDefaults['gabapentin'] = ['25mg', '50mg'];
+            }
+            
+            // Remove Eye_Drops if it exists
+            if (medDefaults['eye_drops_0.5ml']) {
+                delete medDefaults['eye_drops_0.5ml'];
+            }
+            
+            // Clean up deletedMedications list - remove cerenia and gabapentin if they're there
+            try {
+                const deleted = localStorage.getItem('deletedMedications');
+                if (deleted) {
+                    let deletedMeds = JSON.parse(deleted);
+                    deletedMeds = deletedMeds.filter(med => med !== 'cerenia' && med !== 'gabapentin');
+                    localStorage.setItem('deletedMedications', JSON.stringify(deletedMeds));
+                }
+            } catch (e) {
+                console.warn('Could not clean up deleted medications list');
+            }
+            
+            saveCustomMedications();
+            initGoogleAuth();
+            setDefaultDateTime();
+            renderFoodInputs();
+            renderMedInputs();
+            
+            // Add feeling slider listener
+            const feelingSlider = document.getElementById('feeling');
+            if (feelingSlider) {
+                feelingSlider.addEventListener('input', (e) => {
+                    document.getElementById('feeling-value').textContent = e.target.value;
+                });
+            }
+            
+            // Add checkbox listener
+            const skipFeelingCheckbox = document.getElementById('skip-feeling');
+            if (skipFeelingCheckbox) {
+                skipFeelingCheckbox.addEventListener('change', (e) => {
+                    document.getElementById('feeling-container').style.display = e.target.checked ? 'none' : 'block';
+                });
+            }
+            
+            // Add weight checkbox listener
+            const skipWeightCheckbox = document.getElementById('skip-weight');
+            if (skipWeightCheckbox) {
+                skipWeightCheckbox.addEventListener('change', (e) => {
+                    document.getElementById('weight-container').style.display = e.target.checked ? 'none' : 'block';
+                });
+            }
+        }
+        
+        function loadEntries() {
+            try {
+                const saved = localStorage.getItem('dogHealthEntries');
+                entries = saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                console.warn('localStorage not available, using in-memory storage only');
+                entries = [];
+            }
+        }
+        
+        function saveEntries() {
+            try {
+                localStorage.setItem('dogHealthEntries', JSON.stringify(entries));
+            } catch (e) {
+                console.warn('Could not save to localStorage:', e);
+                // Data will be lost on refresh if localStorage isn't available
+            }
+            pushToDrive();
+        }
+        
+        function setDefaultDateTime() {
+            const now = new Date();
+            document.getElementById('date').value = now.toISOString().split('T')[0];
+            document.getElementById('time').value = now.toTimeString().slice(0, 5);
+        }
+        
+        function renderFoodInputs() {
+            const container = document.getElementById('foods-container');
+            container.innerHTML = '';
+            
+            let foodState = {};
+            try {
+                const savedFoodState = localStorage.getItem('foodVisibility');
+                if (savedFoodState) foodState = JSON.parse(savedFoodState);
+            } catch (e) {}
+            
+            // Only show non-deleted foods in foodOrder
+            const activeFoods = foodOrder.filter(f => !deletedFoods.includes(f));
+            
+            activeFoods.forEach((food, idx) => {
+                const isVisible = foodState[food] !== false;
+                const div = document.createElement('div');
+                div.className = 'food-card';
+                div.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                            <button onclick="moveFoodUp('${food}')" style="padding: 1px 5px; font-size: 10px; background: #f0f0f0; border: 0.5px solid #ddd; border-radius: 3px; cursor: pointer; line-height: 1.2;" ${idx === 0 ? 'disabled' : ''}>▲</button>
+                            <button onclick="moveFoodDown('${food}')" style="padding: 1px 5px; font-size: 10px; background: #f0f0f0; border: 0.5px solid #ddd; border-radius: 3px; cursor: pointer; line-height: 1.2;" ${idx === activeFoods.length - 1 ? 'disabled' : ''}>▼</button>
+                        </div>
+                        <input type="checkbox" id="food-${food}-toggle" ${isVisible ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;" />
+                        <label for="food-${food}-toggle" style="margin: 0; cursor: pointer; font-weight: 500; color: #333; flex: 1;">${foodNames[food]}</label>
+                        <button onclick="deleteFood('${food}')" style="padding: 2px 6px; font-size: 16px; background: #fee; color: #c33; border: 0.5px solid #fcc; border-radius: 3px; cursor: pointer;">×</button>
+                    </div>
+                    <div id="food-${food}-inputs" style="display: ${isVisible ? 'block' : 'none'};">
+                        <div class="grid-2-small">
+                            <div class="form-group">
+                                <label class="small">Start (g)</label>
+                                <input type="number" id="food-${food}-start" placeholder="0" />
+                            </div>
+                            <div class="form-group">
+                                <label class="small">End (g)</label>
+                                <input type="number" id="food-${food}-end" placeholder="0" />
+                            </div>
+                        </div>
+                        <div class="calculated" id="calc-${food}"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+                
+                const toggleCheckbox = document.getElementById(`food-${food}-toggle`);
+                const inputsDiv = document.getElementById(`food-${food}-inputs`);
+                toggleCheckbox.addEventListener('change', (e) => {
+                    inputsDiv.style.display = e.target.checked ? 'block' : 'none';
+                    foodState[food] = e.target.checked;
+                    try { localStorage.setItem('foodVisibility', JSON.stringify(foodState)); } catch (e) {}
+                });
+                
+                document.getElementById(`food-${food}-start`).addEventListener('input', () => updateFoodCalc(food));
+                document.getElementById(`food-${food}-end`).addEventListener('input', () => updateFoodCalc(food));
+            });
+
+            // Add New Food section
+            const addDiv = document.createElement('div');
+            addDiv.style.borderTop = '1px solid #ddd';
+            addDiv.style.paddingTop = '16px';
+            addDiv.style.marginTop = '16px';
+            addDiv.innerHTML = `
+                <label class="small"><strong style="color: #333; font-weight: 500;">Add New Food</strong></label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; margin-bottom: 8px;">
+                    <input type="text" id="new-food-name" placeholder="Food name (e.g., Royal Canin)" />
+                    <input type="number" id="new-food-kcal" placeholder="kCal per gram (e.g., 1.2)" step="0.001" />
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                    <input type="number" id="new-food-target" placeholder="Target grams/day (e.g., 200)" step="1" />
+                    <button onclick="handleAddNewFood()" style="padding: 8px 12px; font-size: 13px; background: #378ADD; color: white; border: none; border-radius: 8px; cursor: pointer;">Add Food</button>
+                </div>
+            `;
+            container.appendChild(addDiv);
+        }
+
+        function handleAddNewFood() {
+            const name = document.getElementById('new-food-name').value.trim();
+            const kcal = parseFloat(document.getElementById('new-food-kcal').value);
+            const target = parseFloat(document.getElementById('new-food-target').value) || 0;
+
+            if (!name) { alert('Please enter a food name'); return; }
+            if (!kcal || kcal <= 0) { alert('Please enter a valid kCal per gram'); return; }
+
+            // Create a key from the name
+            const key = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+            if (foodNames[key]) { alert(`"${name}" already exists!`); return; }
+
+            // Remove from deleted list if it was there before
+            deletedFoods = deletedFoods.filter(f => f !== key);
+
+            addNewFood(key, name, kcal, target);
+
+            // Clear inputs
+            document.getElementById('new-food-name').value = '';
+            document.getElementById('new-food-kcal').value = '';
+            document.getElementById('new-food-target').value = '';
+        }
+        
+        function updateFoodCalc(food) {
+            const start = parseFloat(document.getElementById(`food-${food}-start`).value) || 0;
+            const end = parseFloat(document.getElementById(`food-${food}-end`).value) || 0;
+            const grams = Math.max(0, start - end);
+            const calories = Math.round(grams * foodCalories[food] * 10) / 10;
+            
+            const calcDiv = document.getElementById(`calc-${food}`);
+            if (start || end) {
+                calcDiv.textContent = `Consumed: ${grams}g (${calories} kCal)`;
+            } else {
+                calcDiv.textContent = '';
+            }
+        }
+        
+        function renderMedInputs() {
+            const container = document.getElementById('meds-container');
+            container.innerHTML = '';
+            
+            Object.keys(medDefaults).forEach(med => {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+                
+                const labelDiv = document.createElement('div');
+                labelDiv.style.display = 'flex';
+                labelDiv.style.justifyContent = 'space-between';
+                labelDiv.style.alignItems = 'center';
+                labelDiv.style.marginBottom = '6px';
+                
+                const label = document.createElement('label');
+                label.className = 'small';
+                label.innerHTML = `<strong style="color: #333; font-weight: 500;">${med.charAt(0).toUpperCase() + med.slice(1)}</strong>`;
+                labelDiv.appendChild(label);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '×';
+                deleteBtn.style.padding = '2px 6px';
+                deleteBtn.style.fontSize = '16px';
+                deleteBtn.style.background = '#fee';
+                deleteBtn.style.color = '#c33';
+                deleteBtn.style.border = '0.5px solid #fcc';
+                deleteBtn.style.borderRadius = '3px';
+                deleteBtn.style.cursor = 'pointer';
+                deleteBtn.onclick = (e) => {
+                    e.preventDefault();
+                    deleteMedicationColumn(med);
+                };
+                labelDiv.appendChild(deleteBtn);
+                
+                div.appendChild(labelDiv);
+                
+                const select = document.createElement('select');
+                select.id = `med-${med}`;
+                
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Not taken';
+                select.appendChild(defaultOption);
+                
+                medDefaults[med].forEach(dose => {
+                    const option = document.createElement('option');
+                    option.value = dose;
+                    option.textContent = dose;
+                    select.appendChild(option);
+                });
+                
+                const otherOption = document.createElement('option');
+                otherOption.value = 'other';
+                otherOption.textContent = 'Other';
+                select.appendChild(otherOption);
+                
+                div.appendChild(select);
+                
+                const customDiv = document.createElement('div');
+                customDiv.id = `med-${med}-custom`;
+                customDiv.style.display = 'none';
+                customDiv.style.marginTop = '8px';
+                customDiv.innerHTML = `<input type="text" id="med-${med}-custom-value" placeholder="Enter custom dose" style="font-size: 12px;" />`;
+                div.appendChild(customDiv);
+                
+                select.addEventListener('change', (e) => {
+                    document.getElementById(`med-${med}-custom`).style.display = e.target.value === 'other' ? 'block' : 'none';
+                });
+                
+                container.appendChild(div);
+            });
+
+            // Add "New Medication" section
+            const customDiv = document.createElement('div');
+            customDiv.className = 'form-group';
+            customDiv.style.gridColumn = '1 / -1';
+            customDiv.style.borderTop = '1px solid #ddd';
+            customDiv.style.paddingTop = '16px';
+            customDiv.style.marginTop = '16px';
+            
+            const customLabel = document.createElement('label');
+            customLabel.className = 'small';
+            customLabel.innerHTML = `<strong style="color: #333; font-weight: 500;">Add New Medication</strong>`;
+            customDiv.appendChild(customLabel);
+            
+            // Create a div for the two input fields
+            const inputsDiv = document.createElement('div');
+            inputsDiv.style.display = 'grid';
+            inputsDiv.style.gridTemplateColumns = '1fr 1fr';
+            inputsDiv.style.gap = '8px';
+            inputsDiv.style.marginBottom = '8px';
+            
+            // Medication name input
+            const medNameInput = document.createElement('input');
+            medNameInput.type = 'text';
+            medNameInput.id = 'new-med-name';
+            medNameInput.placeholder = 'Medication name (e.g., Aspirin)';
+            inputsDiv.appendChild(medNameInput);
+            
+            // Dosage input
+            const dosageInput = document.createElement('input');
+            dosageInput.type = 'text';
+            dosageInput.id = 'new-med-dosage';
+            dosageInput.placeholder = 'Dosage (e.g., 81mg, 1/2)';
+            inputsDiv.appendChild(dosageInput);
+            
+            customDiv.appendChild(inputsDiv);
+            
+            // Add to tracker checkbox
+            const addTrackerDiv = document.createElement('div');
+            addTrackerDiv.style.display = 'flex';
+            addTrackerDiv.style.alignItems = 'center';
+            addTrackerDiv.style.gap = '8px';
+            
+            const addTrackerCheckbox = document.createElement('input');
+            addTrackerCheckbox.type = 'checkbox';
+            addTrackerCheckbox.id = 'add-to-tracker';
+            addTrackerCheckbox.style.width = '18px';
+            addTrackerCheckbox.style.height = '18px';
+            addTrackerCheckbox.style.cursor = 'pointer';
+            
+            const addTrackerLabel = document.createElement('label');
+            addTrackerLabel.htmlFor = 'add-to-tracker';
+            addTrackerLabel.style.margin = '0';
+            addTrackerLabel.style.cursor = 'pointer';
+            addTrackerLabel.style.fontSize = '13px';
+            addTrackerLabel.style.color = '#666';
+            addTrackerLabel.textContent = 'Add this medication to my tracker';
+            
+            addTrackerDiv.appendChild(addTrackerCheckbox);
+            addTrackerDiv.appendChild(addTrackerLabel);
+            customDiv.appendChild(addTrackerDiv);
+            
+            container.appendChild(customDiv);
+        }
+        
+        function saveEntry() {
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            
+            if (!date || !time) {
+                alert('Please fill in date and time');
+                return;
+            }
+
+            // Handle "Add to tracker" for new medications
+            const newMedName = document.getElementById('new-med-name')?.value?.trim() || '';
+            const newMedDosage = document.getElementById('new-med-dosage')?.value?.trim() || '';
+            const addToTracker = document.getElementById('add-to-tracker')?.checked || false;
+            
+            if (newMedName && newMedDosage && addToTracker) {
+                // Create a new medication key from the name
+                const medKey = newMedName.toLowerCase().replace(/\s+/g, '_');
+                
+                // Check if it doesn't already exist
+                if (!medDefaults[medKey]) {
+                    medDefaults[medKey] = [newMedDosage];
+                    saveCustomMedications();
+                    // Re-render to show the new medication
+                    renderMedInputs();
+                    alert(`"${newMedName}" has been added to your medications!`);
+                } else {
+                    alert(`"${newMedName}" already exists in your tracker.`);
+                }
+            }
+            
+            const foods = {};
+            foodOrder.filter(f => !deletedFoods.includes(f)).forEach(food => {
+                const startEl = document.getElementById(`food-${food}-start`);
+                const endEl = document.getElementById(`food-${food}-end`);
+                foods[food] = {
+                    start: parseFloat(startEl ? startEl.value : 0) || 0,
+                    end: parseFloat(endEl ? endEl.value : 0) || 0
+                };
+            });
+            
+            const medications = {};
+            Object.keys(medDefaults).forEach(med => {
+                const value = document.getElementById(`med-${med}`).value;
+                medications[med] = value === 'other' ? document.getElementById(`med-${med}-custom-value`).value : value;
+                
+                // If "Other" was selected, add the custom dose to the dropdown for next time
+                if (value === 'other') {
+                    const customDose = document.getElementById(`med-${med}-custom-value`).value?.trim();
+                    if (customDose && !medDefaults[med].includes(customDose)) {
+                        medDefaults[med].push(customDose);
+                        saveCustomMedications();
+                    }
+                }
+            });
+            
+            // Always save the new medication if entered (regardless of "Add to tracker" checkbox)
+            if (newMedName && newMedDosage) {
+                medications.other = `${newMedName} ${newMedDosage}`;
+            } else {
+                medications.other = '';
+            }
+            
+            let feeling = null;
+            if (!document.getElementById('skip-feeling').checked) {
+                feeling = parseInt(document.getElementById('feeling').value);
+            }
+            
+            let weight = null;
+            if (!document.getElementById('skip-weight').checked) {
+                const weightAmount = document.getElementById('weight').value;
+                if (weightAmount) {
+                    weight = {
+                        amount: parseFloat(weightAmount),
+                        unit: document.getElementById('weight-unit').value,
+                        location: document.getElementById('weight-location').value
+                    };
+                }
+            }
+            
+            const entry = {
+                id: editingEntryId || Date.now(),
+                date,
+                time,
+                foods,
+                medications,
+                feeling,
+                weight,
+                notes: document.getElementById('notes').value
+            };
+            
+            if (editingEntryId) {
+                entries = entries.map(e => e.id === editingEntryId ? entry : e);
+                editingEntryId = null;
+            } else {
+                entries.push(entry);
+            }
+            
+            saveEntries();
+            renderMedInputs();
+            clearForm();
+            renderSummary();
+            alert('Entry saved!');
+        }
+        
+        function clearForm() {
+            document.getElementById('date').value = '';
+            document.getElementById('time').value = '';
+            document.getElementById('notes').value = '';
+            document.getElementById('skip-feeling').checked = true;
+            document.getElementById('skip-weight').checked = true;
+            document.getElementById('feeling-container').style.display = 'none';
+            document.getElementById('weight-container').style.display = 'none';
+            document.getElementById('feeling').value = 7;
+            document.getElementById('feeling-value').textContent = '7';
+            
+            // Clear new medication fields
+            const newMedName = document.getElementById('new-med-name');
+            const newMedDosage = document.getElementById('new-med-dosage');
+            const addToTrackerCheckbox = document.getElementById('add-to-tracker');
+            if (newMedName) newMedName.value = '';
+            if (newMedDosage) newMedDosage.value = '';
+            if (addToTrackerCheckbox) addToTrackerCheckbox.checked = false;
+            
+            foodOrder.filter(f => !deletedFoods.includes(f)).forEach(food => {
+                const startEl = document.getElementById(`food-${food}-start`);
+                const endEl = document.getElementById(`food-${food}-end`);
+                const calcEl = document.getElementById(`calc-${food}`);
+                if (startEl) startEl.value = '';
+                if (endEl) endEl.value = '';
+                if (calcEl) calcEl.textContent = '';
+            });
+            
+            Object.keys(medDefaults).forEach(med => {
+                document.getElementById(`med-${med}`).value = '';
+                document.getElementById(`med-${med}-custom`).style.display = 'none';
+                document.getElementById(`med-${med}-custom-value`).value = '';
+            });
+            
+            document.querySelector('.save-button').textContent = 'Save Entry';
+            setDefaultDateTime();
+        }
+        
+        function renderSummary() {
+            const container = document.getElementById('entries-container');
+            const sorted = [...entries].sort((a, b) => new Date(`${b.date} ${b.time}`) - new Date(`${a.date} ${a.time}`));
+            
+            container.innerHTML = sorted.map(entry => {
+                let foodsSummary = '';
+                Object.keys(entry.foods).forEach(food => {
+                    const start = entry.foods[food].start || 0;
+                    const end = entry.foods[food].end || 0;
+                    if (start || end) {
+                        const consumed = Math.max(0, start - end);
+                        const kcalPer = foodCalories[food] || 0;
+                        const calories = Math.round(consumed * kcalPer * 10) / 10;
+                        foodsSummary += `<div style="font-size: 13px; color: #666;">${foodNames[food] || food}: ${calories} kCal</div>`;
+                    }
+                });
+                
+                let totalCalories = 0;
+                Object.keys(entry.foods).forEach(food => {
+                    const consumed = Math.max(0, (entry.foods[food].start || 0) - (entry.foods[food].end || 0));
+                    totalCalories += consumed * (foodCalories[food] || 0);
+                });
+                totalCalories = Math.round(totalCalories * 10) / 10;
+                
+                const goalStatus = totalCalories >= 270 ? 'met' : 'exceeded';
+                
+                // Build medications summary
+                let medicationsSummary = '';
+                Object.keys(entry.medications).forEach(med => {
+                    if (med !== 'other' && entry.medications[med]) {
+                        medicationsSummary += `<div style="font-size: 13px; color: #666;">${med.charAt(0).toUpperCase() + med.slice(1)}: ${entry.medications[med]}</div>`;
+                    }
+                });
+                // Add "other" medications if they exist
+                if (entry.medications.other && entry.medications.other.trim()) {
+                    medicationsSummary += `<div style="font-size: 13px; color: #666;">Other: ${entry.medications.other}</div>`;
+                }
+                
+                return `
+                    <div class="entry-item">
+                        <div class="entry-header">
+                            <div>
+                                <p class="entry-datetime">${entry.date} ${entry.time}</p>
+                                ${foodsSummary}
+                            </div>
+                        </div>
+                        <p class="entry-total">Total: <strong>${totalCalories} kCal</strong></p>
+                        <p class="entry-goal ${goalStatus}">Goal: 270 kCal</p>
+                        ${medicationsSummary ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #eee;">${medicationsSummary}</div>` : ''}
+                        ${entry.feeling ? `<p class="entry-total">Feeling: ${entry.feeling}/10</p>` : ''}
+                        ${entry.weight ? `<p class="entry-total">Weight: ${entry.weight.amount} ${entry.weight.unit}</p>` : ''}
+                        ${entry.notes ? `<p class="entry-total"><em>${entry.notes}</em></p>` : ''}
+                        <div class="entry-buttons">
+                            <button onclick="loadEntryForEditing('${entry.id}')">✏️ Edit</button>
+                            <button class="delete" onclick="deleteEntry('${entry.id}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function deleteEntry(id) {
+            if (confirm('Delete this entry?')) {
+                const idToDelete = parseInt(id, 10);
+                entries = entries.filter(e => e.id !== idToDelete);
+                saveEntries();
+                renderSummary();
+            }
+        }
+        
+        function loadEntryForEditing(id) {
+            const entry = entries.find(e => e.id === id);
+            if (!entry) return;
+            
+            editingEntryId = id;
+            
+            // Load form data
+            document.getElementById('date').value = entry.date;
+            document.getElementById('time').value = entry.time;
+            
+            // Load food data
+            Object.keys(entry.foods).forEach(food => {
+                document.getElementById(`food-${food}-start`).value = entry.foods[food].start || '';
+                document.getElementById(`food-${food}-end`).value = entry.foods[food].end || '';
+                updateFoodCalc(food);
+            });
+            
+            // Load medication data
+            Object.keys(entry.medications).forEach(med => {
+                if (med === 'other') {
+                    document.getElementById('med-other').value = entry.medications[med] || '';
+                } else if (Object.keys(medDefaults).includes(med)) {
+                    document.getElementById(`med-${med}`).value = entry.medications[med] || '';
+                    if (entry.medications[med] === 'other') {
+                        document.getElementById(`med-${med}-custom`).style.display = 'block';
+                    }
+                }
+            });
+            
+            // Load feeling data
+            if (entry.feeling !== null && entry.feeling !== undefined) {
+                document.getElementById('skip-feeling').checked = false;
+                document.getElementById('feeling-container').style.display = 'block';
+                document.getElementById('feeling').value = entry.feeling;
+                document.getElementById('feeling-value').textContent = entry.feeling;
+            }
+            
+            // Load weight data
+            if (entry.weight && entry.weight.amount) {
+                document.getElementById('skip-weight').checked = false;
+                document.getElementById('weight-container').style.display = 'block';
+                document.getElementById('weight').value = entry.weight.amount;
+                document.getElementById('weight-unit').value = entry.weight.unit;
+                document.getElementById('weight-location').value = entry.weight.location || '';
+            }
+            
+            // Load notes
+            document.getElementById('notes').value = entry.notes || '';
+            
+            // Update save button text
+            document.querySelector('.save-button').textContent = '✏️ Update Entry';
+            
+            // Switch to entry view
+            switchView('entry');
+        }
+        
+        function getDailyTotals() {
+            const dailyTotals = {};
+            entries.forEach(entry => {
+                if (!dailyTotals[entry.date]) dailyTotals[entry.date] = 0;
+                Object.keys(entry.foods).forEach(food => {
+                    const start = parseFloat(entry.foods[food].start) || 0;
+                    const end = parseFloat(entry.foods[food].end) || 0;
+                    const grams = Math.max(0, start - end);
+                    dailyTotals[entry.date] += grams * (foodCalories[food] || 0);
+                });
+            });
+            return dailyTotals;
+        }
+        
+        function getFoodBreakdownByDay(date) {
+            const breakdown = {};
+            // Include ALL foods (active + deleted) for chart accuracy
+            Object.keys(foodNames).forEach(f => breakdown[f] = 0);
+            
+            entries.filter(e => e.date === date).forEach(entry => {
+                Object.keys(entry.foods).forEach(food => {
+                    const start = parseFloat(entry.foods[food].start) || 0;
+                    const end = parseFloat(entry.foods[food].end) || 0;
+                    const grams = Math.max(0, start - end);
+                    if (!breakdown[food]) breakdown[food] = 0;
+                    breakdown[food] += grams * (foodCalories[food] || 0);
+                });
+            });
+            return breakdown;
+        }
+        
+        function renderCharts() {
+            const dailyTotals = getDailyTotals();
+            let dates = Object.keys(dailyTotals).sort();
+            
+            // Filter to only include days with actual food data
+            dates = dates.filter(date => {
+                let hasData = false;
+                entries.forEach(entry => {
+                    if (entry.date === date) {
+                        Object.keys(entry.foods).forEach(food => {
+                            const start = parseFloat(entry.foods[food].start) || 0;
+                            const end = parseFloat(entry.foods[food].end) || 0;
+                            if (start > 0 || end > 0) {
+                                hasData = true;
+                            }
+                        });
+                    }
+                });
+                return hasData;
+            });
+            
+            if (dates.length === 0) {
+                document.getElementById('calorieChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
+                document.getElementById('foodBreakdownChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
+                document.getElementById('weightChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
+                return;
+            }
+            
+            // Restore canvas elements properly
+            document.getElementById('calorieChart').parentElement.innerHTML = '<canvas id="calorieChart"></canvas>';
+            document.getElementById('foodBreakdownChart').parentElement.innerHTML = '<canvas id="foodBreakdownChart"></canvas>';
+            document.getElementById('weightChart').parentElement.innerHTML = '<canvas id="weightChart"></canvas>';
+            
+            // Use requestAnimationFrame to ensure DOM is updated before accessing canvas
+            requestAnimationFrame(() => {
+                // Calorie Chart
+                const calorieCanvas = document.getElementById('calorieChart');
+                if (!calorieCanvas) return;
+                
+                const calorieCtx = calorieCanvas.getContext('2d');
+                if (calorieChartInstance) {
+                    calorieChartInstance.destroy();
+                }
+                
+                const calorieData = dates.map(date => Math.round(dailyTotals[date] * 10) / 10);
+                
+                calorieChartInstance = new Chart(calorieCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: dates,
+                        datasets: [
+                            {
+                                label: 'kCal Consumed',
+                                data: calorieData,
+                                backgroundColor: '#378ADD',
+                                borderColor: '#185FA5',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: { font: { size: 12 } }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'kCal' }
+                            }
+                        }
+                    },
+                    plugins: [
+                        {
+                            id: 'goalLine',
+                            afterDatasetsDraw(chart) {
+                                const yScale = chart.scales.y;
+                                const xScale = chart.scales.x;
+                                const goalValue = 270;
+                                const yPos = yScale.getPixelForValue(goalValue);
+                                
+                                const ctx = chart.ctx;
+                                ctx.save();
+                                ctx.strokeStyle = '#0F6E56';
+                                ctx.lineWidth = 2;
+                                ctx.setLineDash([5, 5]);
+                                ctx.beginPath();
+                                ctx.moveTo(xScale.left, yPos);
+                                ctx.lineTo(xScale.right, yPos);
+                                ctx.stroke();
+                                
+                                ctx.fillStyle = '#0F6E56';
+                                ctx.font = 'bold 12px sans-serif';
+                                ctx.fillText('Goal (270 kCal)', xScale.left + 5, yPos - 5);
+                                ctx.restore();
+                            }
+                        }
+                    ]
+                });
+                
+                // Food Breakdown Chart
+                const foodCanvas = document.getElementById('foodBreakdownChart');
+                if (!foodCanvas) return;
+                
+                const foodCtx = foodCanvas.getContext('2d');
+                if (foodBreakdownChartInstance) {
+                    foodBreakdownChartInstance.destroy();
+                }
+
+                // Collect all foods ever logged across all entries (including deleted)
+                const allFoodsEver = new Set();
+                entries.forEach(entry => Object.keys(entry.foods).forEach(f => allFoodsEver.add(f)));
+                const foodTypesList = Array.from(allFoodsEver);
+
+                // Assign colors — use defaults for known foods, generate for custom
+                const baseColors = ['#378ADD', '#639922', '#BA7517', '#D4537E', '#9B59B6', '#E67E22', '#1ABC9C', '#E74C3C'];
+                const foodColors = {};
+                const defaultColorMap = { farmersDog: '#378ADD', wynwood: '#639922', homemadeChicken: '#BA7517', homemadeBeef: '#D4537E' };
+                let colorIdx = 4;
+                foodTypesList.forEach(f => {
+                    foodColors[f] = defaultColorMap[f] || baseColors[colorIdx++ % baseColors.length];
+                });
+                
+                const foodByDay = {};
+                dates.forEach(date => {
+                    const breakdown = getFoodBreakdownByDay(date);
+                    const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
+                    foodByDay[date] = {};
+                    foodTypesList.forEach(food => {
+                        foodByDay[date][food] = total > 0 ? ((breakdown[food] || 0) / total) * 100 : 0;
+                    });
+                });
+                
+                const datasets = foodTypesList.map(food => ({
+                    label: foodNames[food] || food,
+                    data: dates.map(date => Math.round(foodByDay[date][food] * 10) / 10),
+                    backgroundColor: foodColors[food],
+                    borderColor: '#fff',
+                    borderWidth: 1
+                }));
+                
+                foodBreakdownChartInstance = new Chart(foodCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: dates,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'x',
+                        scales: {
+                            x: {
+                                stacked: true,
+                                title: { display: true, text: 'Date' }
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                max: 100,
+                                title: { display: true, text: 'Percentage (%)' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                                labels: { font: { size: 12 }, padding: 12 }
+                            }
+                        }
+                    }
+                });
+                
+                // Weight Chart
+                const weightCanvas = document.getElementById('weightChart');
+                if (!weightCanvas) return;
+                
+                const weightCtx = weightCanvas.getContext('2d');
+                if (weightChartInstance) {
+                    weightChartInstance.destroy();
+                }
+                
+                const weightByDate = {};
+                entries.forEach(entry => {
+                    if (entry.weight && entry.weight.amount) {
+                        if (!weightByDate[entry.date]) {
+                            weightByDate[entry.date] = {
+                                weight: entry.weight.amount,
+                                unit: entry.weight.unit,
+                                location: entry.weight.location
+                            };
+                        }
+                    }
+                });
+                
+                const weightDates = Object.keys(weightByDate).sort();
+                const weightValues = weightDates.map(date => weightByDate[date].weight);
+                const weightUnit = weightDates.length > 0 ? weightByDate[weightDates[0]].unit : 'lbs';
+                
+                if (weightDates.length > 0) {
+                    weightChartInstance = new Chart(weightCtx, {
+                        type: 'line',
+                        data: {
+                            labels: weightDates,
+                            datasets: [{
+                                label: `Weight (${weightUnit})`,
+                                data: weightValues,
+                                borderColor: '#639922',
+                                backgroundColor: 'rgba(99, 153, 34, 0.1)',
+                                borderWidth: 3,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 6,
+                                pointBackgroundColor: '#639922',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointHoverRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: false,
+                                    title: { display: true, text: `Weight (${weightUnit})` }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    labels: { font: { size: 12 } }
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        function getFeelingByDay() {
+            const feelingByDay = {};
+            entries.forEach(entry => {
+                if (!feelingByDay[entry.date]) {
+                    feelingByDay[entry.date] = [];
+                }
+                if (entry.feeling !== null && entry.feeling !== undefined) {
+                    feelingByDay[entry.date].push(entry.feeling);
+                }
+            });
+            
+            const averageFeeling = {};
+            Object.keys(feelingByDay).forEach(date => {
+                const feelings = feelingByDay[date];
+                averageFeeling[date] = feelings.length > 0 ? Math.round((feelings.reduce((a, b) => a + b) / feelings.length) * 10) / 10 : null;
+            });
+            return averageFeeling;
+        }
+        
+        function renderMedsCharts() {
+            const dailyTotals = getDailyTotals();
+            const dates = Object.keys(dailyTotals).sort();
+            
+            if (dates.length === 0) {
+                document.getElementById('medsHeatmap').innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
+                document.getElementById('feelingTrendChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
+                return;
+            }
+            
+            const feelingByDay = getFeelingByDay();
+            
+            // Restore canvas element
+            document.getElementById('feelingTrendChart').parentElement.innerHTML = '<canvas id="feelingTrendChart"></canvas>';
+            
+            // Medication Heatmap
+            renderMedicationHeatmap(dates);
+            
+            // Use requestAnimationFrame to ensure DOM is updated before accessing canvas
+            requestAnimationFrame(() => {
+                const feelingCanvas = document.getElementById('feelingTrendChart');
+                if (!feelingCanvas) return;
+                
+                const feelingCtx = feelingCanvas.getContext('2d');
+                if (feelingTrendChartInstance) {
+                    feelingTrendChartInstance.destroy();
+                }
+                
+                const validFeelingDates = dates.filter(date => feelingByDay[date] !== null && feelingByDay[date] !== undefined);
+                const validFeelingData = validFeelingDates.map(date => feelingByDay[date]);
+                
+                feelingTrendChartInstance = new Chart(feelingCtx, {
+                    type: 'line',
+                    data: {
+                        labels: validFeelingDates,
+                        datasets: [{
+                            label: 'How He\'s Feeling',
+                            data: validFeelingData,
+                            borderColor: '#D4537E',
+                            backgroundColor: 'rgba(212, 83, 126, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 6,
+                            pointBackgroundColor: '#D4537E',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                min: 0,
+                                max: 10,
+                                title: { display: true, text: 'Feeling (1-10)' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: true, labels: { font: { size: 12 } } }
+                        }
+                    }
+                });
+            });
+        }
+        
+        function deleteMedicationColumn(med) {
+            console.log('Delete clicked for medication:', med);
+            console.log('medDefaults before delete:', medDefaults);
+            
+            if (confirm(`Delete "${med}" from your medications?`)) {
+                // Remove from medDefaults
+                delete medDefaults[med];
+                console.log('medDefaults after delete:', medDefaults);
+                
+                saveCustomMedications();
+                saveDeletionList();
+                saveEntries();
+                pushToDrive();
+                
+                // Re-render medications section
+                renderMedInputs();
+                // Re-render medication schedule and charts
+                renderMedsCharts();
+                
+                console.log('Deleted medication and re-rendered');
+            }
+        }
+        
+        function renderMedicationHeatmap(dates) {
+            const allMeds = new Set();
+            const medsByDateTime = {};
+            
+            // Only add medications that are currently in medDefaults (not deleted ones)
+            Object.keys(medDefaults).forEach(med => allMeds.add(med));
+            
+            entries.forEach(entry => {
+                const dateTime = `${entry.date} ${entry.time}`;
+                medsByDateTime[dateTime] = {};
+                
+                Object.keys(medDefaults).forEach(med => {
+                    if (entry.medications[med]) {
+                        allMeds.add(med);
+                        medsByDateTime[dateTime][med] = entry.medications[med];
+                    }
+                });
+                
+                if (entry.medications.other && entry.medications.other.trim()) {
+                    // Only add custom meds that are currently in medDefaults
+                    const customMeds = entry.medications.other.split(',').map(m => m.trim());
+                    customMeds.forEach(customMed => {
+                        if (customMed && medDefaults[customMed.toLowerCase().replace(/\s+/g, '_')]) {
+                            allMeds.add(customMed);
+                            medsByDateTime[dateTime][customMed] = customMed;
+                        }
+                    });
+                }
+            });
+            
+            const standardMeds = Array.from(allMeds).filter(m => Object.keys(medDefaults).includes(m));
+            const customMeds = Array.from(allMeds).filter(m => !Object.keys(medDefaults).includes(m)).sort();
+            const sortedMeds = [...standardMeds, ...customMeds];
+            
+            const allDateTimes = Object.keys(medsByDateTime).sort();
+            const sortedDateTimes = allDateTimes.filter(dateTime => {
+                return Object.keys(medsByDateTime[dateTime]).length > 0;
+            });
+            
+            const morningTimes = sortedDateTimes.filter(dateTime => {
+                const time = dateTime.split(' ')[1];
+                const [hours, minutes] = time.split(':').map(Number);
+                const totalMinutes = hours * 60 + minutes;
+                return totalMinutes < 13 * 60;
+            });
+            
+            const eveningTimes = sortedDateTimes.filter(dateTime => {
+                const time = dateTime.split(' ')[1];
+                const [hours, minutes] = time.split(':').map(Number);
+                const totalMinutes = hours * 60 + minutes;
+                return totalMinutes >= 13 * 60;
+            });
+            
+            const convertTo12Hour = (time24) => {
+                const [hours, minutes] = time24.split(':').map(Number);
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const hours12 = hours % 12 || 12;
+                return `${hours12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+            };
+            
+            const generateTable = (dateTimes, title) => {
+                if (dateTimes.length === 0) return '';
+                
+                let html = `<h3 style="font-size: 14px; font-weight: 500; color: #333; margin: 16px 0 8px 0;">${title}</h3>`;
+                html += '<table style="border-collapse: collapse; width: 100%; font-size: 13px; margin-bottom: 20px;">';
+                
+                html += '<tr><th style="border: 0.5px solid #ddd; padding: 8px; text-align: left; background: #f5f5f5;">Date/Time</th>';
+                sortedMeds.forEach(med => {
+                    const displayName = Object.keys(medDefaults).includes(med) ? foodNames[med] || med : med;
+                    html += `<th style="border: 0.5px solid #ddd; padding: 8px; text-align: center; background: #f5f5f5; font-size: 12px;"><div style="display: flex; align-items: center; justify-content: center; gap: 4px;">${displayName}<button onclick="deleteMedicationColumn('${med}')" style="padding: 2px 6px; font-size: 10px; background: #fee; color: #c33; border: 0.5px solid #fcc; border-radius: 3px; cursor: pointer;">×</button></div></th>`;
+                });
+                html += '</tr>';
+                
+                let lastDate = null;
+                dateTimes.forEach((dateTime, index) => {
+                    const [date, time] = dateTime.split(' ');
+                    const time12 = convertTo12Hour(time);
+                    const displayDateTime = `${date} ${time12}`;
+                    
+                    const isNewDate = lastDate !== date;
+                    const borderTop = isNewDate && index > 0 ? '3px solid #333' : '0.5px solid #ddd';
+                    
+                    html += `<tr><td style="border-top: ${borderTop}; border-bottom: 0.5px solid #ddd; border-left: 0.5px solid #ddd; border-right: 0.5px solid #ddd; padding: 8px; background: #fafafa; font-weight: 500;">${displayDateTime}</td>`;
+                    
+                    sortedMeds.forEach(med => {
+                        const medValue = medsByDateTime[dateTime][med];
+                        let cellColor = '#ffffff';
+                        let cellText = '';
+                        
+                        if (medValue) {
+                            let dose = 0.5;
+                            let isMgDose = false;
+                            
+                            if (medValue.toLowerCase().includes('mg')) {
+                                isMgDose = true;
+                                const mgMatch = medValue.match(/(\d+\.?\d*)\s*mg/i);
+                                if (mgMatch) {
+                                    dose = parseFloat(mgMatch[1]);
+                                }
+                            } else {
+                                const fractionMatch = medValue.match(/(\d+\.?\d*)\s*\/\s*(\d+\.?\d*)/);
+                                if (fractionMatch) {
+                                    dose = parseFloat(fractionMatch[1]) / parseFloat(fractionMatch[2]);
+                                } else {
+                                    const numberMatch = medValue.match(/\d+\.?\d*/);
+                                    if (numberMatch) {
+                                        dose = parseFloat(numberMatch[0]);
+                                    }
+                                }
+                            }
+                            
+                            let normalizedDose;
+                            if (isMgDose) {
+                                normalizedDose = Math.min(dose / 50, 1);
+                            } else {
+                                normalizedDose = Math.min(dose / 2, 1);
+                            }
+                            
+                            cellColor = `rgba(55, 138, 221, ${0.2 + normalizedDose * 0.8})`;
+                            cellText = medValue;
+                        }
+                        
+                        html += `<td style="border-top: ${borderTop}; border-bottom: 0.5px solid #ddd; border-left: 0.5px solid #ddd; border-right: 0.5px solid #ddd; padding: 8px; text-align: center; background: ${cellColor}; font-weight: 500; color: ${medValue ? '#185FA5' : '#ccc'};">${cellText}</td>`;
+                    });
+                    
+                    lastDate = date;
+                    html += '</tr>';
+                });
+                
+                html += '</table>';
+                return html;
+            };
+            
+            let finalHtml = '';
+            finalHtml += generateTable(morningTimes, '🌅 Morning Medications (Before 1:00 PM)');
+            finalHtml += generateTable(eveningTimes, '🌙 Evening Medications (After 1:00 PM)');
+            
+            if (morningTimes.length === 0 && eveningTimes.length === 0) {
+                finalHtml = '<p style="text-align: center; color: #999; padding: 20px;">No medications logged yet.</p>';
+            }
+            
+            document.getElementById('medsHeatmap').innerHTML = finalHtml;
+        }
+        
+        function switchView(view) {
+            const entryView = document.getElementById('entry-view');
+            const foodSummaryView = document.getElementById('food-summary-view');
+            const medsSummaryView = document.getElementById('meds-summary-view');
+            const summaryView = document.getElementById('summary-view');
+            const buttons = document.querySelectorAll('.tab-button');
+            
+            entryView.classList.add('hidden');
+            foodSummaryView.classList.add('hidden');
+            medsSummaryView.classList.add('hidden');
+            summaryView.classList.add('hidden');
+            buttons.forEach(b => b.classList.remove('active'));
+            
+            if (view === 'entry') {
+                entryView.classList.remove('hidden');
+                buttons[0].classList.add('active');
+            } else if (view === 'food-summary') {
+                foodSummaryView.classList.remove('hidden');
+                buttons[1].classList.add('active');
+                renderCharts();
+            } else if (view === 'meds-summary') {
+                medsSummaryView.classList.remove('hidden');
+                buttons[2].classList.add('active');
+                renderMedsCharts();
+            } else if (view === 'summary') {
+                summaryView.classList.remove('hidden');
+                buttons[3].classList.add('active');
+                renderSummary();
+            }
+        }
+        
+        function exportToCSV() {
+            if (entries.length === 0) {
+                alert('No entries to export');
+                return;
+            }
+            
+            // Collect ALL foods ever logged (active + deleted + custom)
+            const allFoodsEver = new Set([...Object.keys(defaultFoodNames)]);
+            entries.forEach(entry => Object.keys(entry.foods).forEach(f => allFoodsEver.add(f)));
+            const allFoodsList = Array.from(allFoodsEver);
+            
+            // Build header with all foods
+            let header = 'Date,Time';
+            allFoodsList.forEach(food => {
+                const name = foodNames[food] || food;
+                header += `,${name} Start (g),${name} End (g),${name} Consumed (g),${name} Calories`;
+            });
+            header += ',Total Daily Calories';
+            
+            // Add all medications as columns
+            const allMedsEver = new Set();
+            Object.keys(medDefaults).forEach(med => allMedsEver.add(med));
+            entries.forEach(entry => {
+                Object.keys(entry.medications).forEach(med => {
+                    if (med !== 'other' && entry.medications[med]) allMedsEver.add(med);
+                });
+            });
+            Array.from(allMedsEver).sort().forEach(med => {
+                header += `,${med.charAt(0).toUpperCase() + med.slice(1)}`;
+            });
+            header += ',Other Medications,Weight,Weight Unit,Weight Location,Feeling,Notes\n';
+            
+            let csv = header;
+            
+            entries.forEach(entry => {
+                const row = [];
+                row.push(entry.date);
+                row.push(entry.time);
+                
+                let dayTotal = 0;
+                allFoodsList.forEach(food => {
+                    const start = parseFloat(entry.foods[food]?.start) || 0;
+                    const end = parseFloat(entry.foods[food]?.end) || 0;
+                    const consumed = Math.max(0, start - end);
+                    const kcalPer = foodCalories[food] || 0;
+                    const calories = Math.round(consumed * kcalPer * 10) / 10;
+                    dayTotal += consumed * kcalPer;
+                    row.push(start);
+                    row.push(end);
+                    row.push(consumed);
+                    row.push(calories);
+                });
+                row.push(Math.round(dayTotal * 10) / 10);
+                
+                Array.from(allMedsEver).sort().forEach(med => {
+                    row.push(entry.medications[med] || '');
+                });
+                row.push(entry.medications.other || '');
+                
+                if (entry.weight && entry.weight.amount) {
+                    row.push(entry.weight.amount);
+                    row.push(entry.weight.unit);
+                    row.push(entry.weight.location || '');
+                } else {
+                    row.push(''); row.push(''); row.push('');
+                }
+                
+                row.push(entry.feeling !== null && entry.feeling !== undefined ? entry.feeling : '');
+                row.push(`"${(entry.notes || '').replace(/"/g, '""')}"`);
+                
+                const csvRow = row.map(val => {
+                    const str = String(val);
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return `"${str.replace(/"/g, '""')}"`;
+                    }
+                    return str;
+                }).join(',');
+                
+                csv += csvRow + '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const now = new Date();
+            const timestamp = now.toISOString().split('T')[0];
+            link.setAttribute('href', url);
+            link.setAttribute('download', `dog_health_data_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Start app
+        init();
+    </script>
+</body>
+</html>
