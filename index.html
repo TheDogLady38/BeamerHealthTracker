@@ -267,7 +267,7 @@
             <button class="tab-button active" onclick="switchView('entry')">New Entry</button>
             <button class="tab-button" onclick="switchView('food-summary')">Food Summary</button>
             <button class="tab-button" onclick="switchView('meds-summary')">Meds Summary</button>
-            <button class="tab-button" onclick="switchView('summary')">Daily Summary</button>
+            <button class="tab-button" onclick="switchView('summary')">Entry Summary</button>
         </div>
         
         <!-- Entry View -->
@@ -1257,30 +1257,47 @@
         }
         
         function loadEntryForEditing(id) {
-            const entry = entries.find(e => e.id === id);
+            const idNum = parseInt(id, 10);
+            const entry = entries.find(e => e.id === idNum);
             if (!entry) return;
             
-            editingEntryId = id;
+            editingEntryId = idNum;
             
             // Load form data
             document.getElementById('date').value = entry.date;
             document.getElementById('time').value = entry.time;
             
-            // Load food data
-            Object.keys(entry.foods).forEach(food => {
-                document.getElementById(`food-${food}-start`).value = entry.foods[food].start || '';
-                document.getElementById(`food-${food}-end`).value = entry.foods[food].end || '';
-                updateFoodCalc(food);
+            // Load food data - only for active (non-deleted) foods
+            foodOrder.filter(f => !deletedFoods.includes(f)).forEach(food => {
+                const startEl = document.getElementById(`food-${food}-start`);
+                const endEl = document.getElementById(`food-${food}-end`);
+                if (startEl && entry.foods[food]) startEl.value = entry.foods[food].start || '';
+                if (endEl && entry.foods[food]) endEl.value = entry.foods[food].end || '';
+                if (entry.foods[food]) updateFoodCalc(food);
             });
             
             // Load medication data
             Object.keys(entry.medications).forEach(med => {
                 if (med === 'other') {
-                    document.getElementById('med-other').value = entry.medications[med] || '';
+                    // Handle "other" med field - stored in new-med-name/dosage fields
+                    const otherVal = entry.medications[med] || '';
+                    if (otherVal) {
+                        const parts = otherVal.split(' ');
+                        const dosage = parts.pop();
+                        const name = parts.join(' ');
+                        const nameEl = document.getElementById('new-med-name');
+                        const dosageEl = document.getElementById('new-med-dosage');
+                        if (nameEl) nameEl.value = name;
+                        if (dosageEl) dosageEl.value = dosage;
+                    }
                 } else if (Object.keys(medDefaults).includes(med)) {
-                    document.getElementById(`med-${med}`).value = entry.medications[med] || '';
-                    if (entry.medications[med] === 'other') {
-                        document.getElementById(`med-${med}-custom`).style.display = 'block';
+                    const el = document.getElementById(`med-${med}`);
+                    if (el) {
+                        el.value = entry.medications[med] || '';
+                        if (entry.medications[med] === 'other') {
+                            const customDiv = document.getElementById(`med-${med}-custom`);
+                            if (customDiv) customDiv.style.display = 'block';
+                        }
                     }
                 }
             });
@@ -1308,8 +1325,11 @@
             // Update save button text
             document.querySelector('.save-button').textContent = '✏️ Update Entry';
             
-            // Switch to entry view
+            // Switch to New Entry tab
             switchView('entry');
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
         }
         
         function getDailyTotals() {
