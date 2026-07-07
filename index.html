@@ -803,7 +803,20 @@
         function setDefaultDateTime() {
             const now = new Date();
             document.getElementById('date').value = now.toISOString().split('T')[0];
-            document.getElementById('time').value = now.toTimeString().slice(0, 5);
+            document.getElementById('time').value = getNearestQuarterHour(now);
+            // Reset manual edit flags when clearing form
+            localStorage.removeItem('timeManuallyEdited');
+            localStorage.removeItem('dateManuallyEdited');
+        }
+        
+        function getNearestQuarterHour(date) {
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            // Round to nearest 15-minute increment
+            const roundedMinutes = Math.round(minutes / 15) * 15;
+            const adjustedHours = hours + Math.floor(roundedMinutes / 60);
+            const finalMinutes = roundedMinutes % 60;
+            return `${String(adjustedHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
         }
         
         function setupAutoTimeUpdate() {
@@ -829,15 +842,32 @@
                 const el = document.getElementById(id);
                 if (el) {
                     // Update time on focus and input
-                    el.addEventListener('focus', updateTimeToNow);
-                    el.addEventListener('input', updateTimeToNow);
+                    el.addEventListener('focus', updateTimeToNearestQuarter);
+                    el.addEventListener('input', updateTimeToNearestQuarter);
                 }
             });
+            
+            // Track manual edits to time/date
+            const timeEl = document.getElementById('time');
+            const dateEl = document.getElementById('date');
+            if (timeEl) {
+                timeEl.addEventListener('change', () => {
+                    localStorage.setItem('timeManuallyEdited', 'true');
+                });
+            }
+            if (dateEl) {
+                dateEl.addEventListener('change', () => {
+                    localStorage.setItem('dateManuallyEdited', 'true');
+                });
+            }
         }
         
-        function updateTimeToNow() {
-            const now = new Date();
-            document.getElementById('time').value = now.toTimeString().slice(0, 5);
+        function updateTimeToNearestQuarter() {
+            // Only auto-update if user hasn't manually changed the time
+            if (localStorage.getItem('timeManuallyEdited') !== 'true') {
+                const now = new Date();
+                document.getElementById('time').value = getNearestQuarterHour(now);
+            }
         }
         
         function renderFoodInputs() {
@@ -1191,6 +1221,10 @@
             renderMedInputs();
             clearForm();
             renderSummary();
+            
+            // Clear manual edit flags for next entry
+            localStorage.removeItem('timeManuallyEdited');
+            localStorage.removeItem('dateManuallyEdited');
             alert('Entry saved!');
         }
         
@@ -1308,6 +1342,10 @@
             if (!entry) return;
             
             editingEntryId = idNum;
+            
+            // Clear manual edit flags when loading - allow auto-update for this session
+            localStorage.removeItem('timeManuallyEdited');
+            localStorage.removeItem('dateManuallyEdited');
             
             // Load form data
             document.getElementById('date').value = entry.date;
