@@ -365,12 +365,6 @@
                 </div>
             </div>
             
-            <div class="card">
-                <h2>Food Breakdown by Day</h2>
-                <div style="position: relative; height: 350px;">
-                    <canvas id="foodBreakdownChart"></canvas>
-                </div>
-            </div>
             
             <div class="card">
                 <h2>Weight Over Time</h2>
@@ -714,7 +708,6 @@
         
         // Chart instances
         let calorieChartInstance = null;
-        let foodBreakdownChartInstance = null;
         let weightChartInstance = null;
         let feelingTrendChartInstance = null;
         
@@ -1470,19 +1463,17 @@
             
             if (dates.length === 0) {
                 document.getElementById('calorieChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
-                document.getElementById('foodBreakdownChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
                 document.getElementById('weightChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
                 return;
             }
             
             // Restore canvas elements properly
             document.getElementById('calorieChart').parentElement.innerHTML = '<canvas id="calorieChart"></canvas>';
-            document.getElementById('foodBreakdownChart').parentElement.innerHTML = '<canvas id="foodBreakdownChart"></canvas>';
             document.getElementById('weightChart').parentElement.innerHTML = '<canvas id="weightChart"></canvas>';
             
             // Use requestAnimationFrame to ensure DOM is updated before accessing canvas
             requestAnimationFrame(() => {
-                // Calorie Chart
+                // Calorie Chart - Stacked by Food Type
                 const calorieCanvas = document.getElementById('calorieChart');
                 if (!calorieCanvas) return;
                 
@@ -1491,36 +1482,74 @@
                     calorieChartInstance.destroy();
                 }
                 
-                const calorieData = dates.map(date => Math.round(dailyTotals[date] * 10) / 10);
+                // Collect all foods ever logged across all entries (including deleted)
+                const allFoodsEver = new Set();
+                entries.forEach(entry => Object.keys(entry.foods).forEach(f => allFoodsEver.add(f)));
+                const foodTypesList = Array.from(allFoodsEver);
+                
+                // Assign colors — use defaults for known foods, generate for custom
+                const baseColors = ['#378ADD', '#639922', '#BA7517', '#D4537E', '#9B59B6', '#E67E22', '#1ABC9C', '#E74C3C'];
+                const foodColors = {};
+                const defaultColorMap = { farmersDog: '#378ADD', wynwood: '#639922', homemadeChicken: '#BA7517', homemadeBeef: '#D4537E' };
+                let colorIdx = 4;
+                foodTypesList.forEach(f => {
+                    foodColors[f] = defaultColorMap[f] || baseColors[colorIdx++ % baseColors.length];
+                });
+                
+                // Calculate calories by food type for each day
+                const caloriesByFoodByDay = {};
+                dates.forEach(date => {
+                    caloriesByFoodByDay[date] = {};
+                    foodTypesList.forEach(food => {
+                        caloriesByFoodByDay[date][food] = 0;
+                    });
+                });
+                
+                entries.forEach(entry => {
+                    if (caloriesByFoodByDay[entry.date]) {
+                        Object.keys(entry.foods).forEach(food => {
+                            const start = parseFloat(entry.foods[food].start) || 0;
+                            const end = parseFloat(entry.foods[food].end) || 0;
+                            const grams = Math.max(0, start - end);
+                            caloriesByFoodByDay[entry.date][food] += grams * (foodCalories[food] || 0);
+                        });
+                    }
+                });
+                
+                // Create datasets for stacked chart
+                const calorieDatasets = foodTypesList.map(food => ({
+                    label: foodNames[food] || food,
+                    data: dates.map(date => Math.round(caloriesByFoodByDay[date][food] * 10) / 10),
+                    backgroundColor: foodColors[food],
+                    borderColor: '#fff',
+                    borderWidth: 1
+                }));
                 
                 calorieChartInstance = new Chart(calorieCtx, {
                     type: 'bar',
                     data: {
                         labels: dates,
-                        datasets: [
-                            {
-                                label: 'kCal Consumed',
-                                data: calorieData,
-                                backgroundColor: '#378ADD',
-                                borderColor: '#185FA5',
-                                borderWidth: 1,
-                                borderRadius: 4
-                            }
-                        ]
+                        datasets: calorieDatasets
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                stacked: true,
+                                title: { display: false }
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                title: { display: false }
+                            }
+                        },
                         plugins: {
                             legend: {
                                 display: true,
-                                labels: { font: { size: 12 } }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: { display: true, text: 'kCal' }
+                                position: 'bottom',
+                                labels: { font: { size: 12 }, padding: 12 }
                             }
                         }
                     },
@@ -1550,79 +1579,6 @@
                             }
                         }
                     ]
-                });
-                
-                // Food Breakdown Chart
-                const foodCanvas = document.getElementById('foodBreakdownChart');
-                if (!foodCanvas) return;
-                
-                const foodCtx = foodCanvas.getContext('2d');
-                if (foodBreakdownChartInstance) {
-                    foodBreakdownChartInstance.destroy();
-                }
-
-                // Collect all foods ever logged across all entries (including deleted)
-                const allFoodsEver = new Set();
-                entries.forEach(entry => Object.keys(entry.foods).forEach(f => allFoodsEver.add(f)));
-                const foodTypesList = Array.from(allFoodsEver);
-
-                // Assign colors — use defaults for known foods, generate for custom
-                const baseColors = ['#378ADD', '#639922', '#BA7517', '#D4537E', '#9B59B6', '#E67E22', '#1ABC9C', '#E74C3C'];
-                const foodColors = {};
-                const defaultColorMap = { farmersDog: '#378ADD', wynwood: '#639922', homemadeChicken: '#BA7517', homemadeBeef: '#D4537E' };
-                let colorIdx = 4;
-                foodTypesList.forEach(f => {
-                    foodColors[f] = defaultColorMap[f] || baseColors[colorIdx++ % baseColors.length];
-                });
-                
-                const foodByDay = {};
-                dates.forEach(date => {
-                    const breakdown = getFoodBreakdownByDay(date);
-                    const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
-                    foodByDay[date] = {};
-                    foodTypesList.forEach(food => {
-                        foodByDay[date][food] = total > 0 ? ((breakdown[food] || 0) / total) * 100 : 0;
-                    });
-                });
-                
-                const datasets = foodTypesList.map(food => ({
-                    label: foodNames[food] || food,
-                    data: dates.map(date => Math.round(foodByDay[date][food] * 10) / 10),
-                    backgroundColor: foodColors[food],
-                    borderColor: '#fff',
-                    borderWidth: 1
-                }));
-                
-                foodBreakdownChartInstance = new Chart(foodCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: dates,
-                        datasets: datasets
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'x',
-                        scales: {
-                            x: {
-                                stacked: true,
-                                title: { display: true, text: 'Date' }
-                            },
-                            y: {
-                                stacked: true,
-                                beginAtZero: true,
-                                max: 100,
-                                title: { display: true, text: 'Percentage (%)' }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'bottom',
-                                labels: { font: { size: 12 }, padding: 12 }
-                            }
-                        }
-                    }
                 });
                 
                 // Weight Chart
@@ -1842,14 +1798,42 @@
                 return Object.keys(medsByDateTime[dateTime]).length > 0;
             });
             
-            const morningTimes = sortedDateTimes.filter(dateTime => {
+            // Separate into recent (last 7 days) and old entries
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            const recentTimes = sortedDateTimes.filter(dateTime => {
+                const entryDate = new Date(dateTime.split(' ')[0]);
+                return entryDate >= sevenDaysAgo;
+            }).reverse(); // Reverse so newer entries at top
+            
+            const oldTimes = sortedDateTimes.filter(dateTime => {
+                const entryDate = new Date(dateTime.split(' ')[0]);
+                return entryDate < sevenDaysAgo;
+            }).reverse(); // Reverse so newer entries at top
+            
+            const morningRecent = recentTimes.filter(dateTime => {
                 const time = dateTime.split(' ')[1];
                 const [hours, minutes] = time.split(':').map(Number);
                 const totalMinutes = hours * 60 + minutes;
                 return totalMinutes < 13 * 60;
             });
             
-            const eveningTimes = sortedDateTimes.filter(dateTime => {
+            const eveningRecent = recentTimes.filter(dateTime => {
+                const time = dateTime.split(' ')[1];
+                const [hours, minutes] = time.split(':').map(Number);
+                const totalMinutes = hours * 60 + minutes;
+                return totalMinutes >= 13 * 60;
+            });
+            
+            const morningOld = oldTimes.filter(dateTime => {
+                const time = dateTime.split(' ')[1];
+                const [hours, minutes] = time.split(':').map(Number);
+                const totalMinutes = hours * 60 + minutes;
+                return totalMinutes < 13 * 60;
+            });
+            
+            const eveningOld = oldTimes.filter(dateTime => {
                 const time = dateTime.split(' ')[1];
                 const [hours, minutes] = time.split(':').map(Number);
                 const totalMinutes = hours * 60 + minutes;
@@ -1866,11 +1850,24 @@
             const generateTable = (dateTimes, title) => {
                 if (dateTimes.length === 0) return '';
                 
+                // Filter to only show medications that have data in this section
+                const medsInSection = new Set();
+                dateTimes.forEach(dateTime => {
+                    Object.keys(medsByDateTime[dateTime]).forEach(med => {
+                        if (medsByDateTime[dateTime][med]) {
+                            medsInSection.add(med);
+                        }
+                    });
+                });
+                const sectionMeds = sortedMeds.filter(m => medsInSection.has(m));
+                
+                if (sectionMeds.length === 0) return ''; // Hide section if no meds
+                
                 let html = `<h3 style="font-size: 14px; font-weight: 500; color: #333; margin: 16px 0 8px 0;">${title}</h3>`;
                 html += '<table style="border-collapse: collapse; width: 100%; font-size: 13px; margin-bottom: 20px;">';
                 
                 html += '<tr><th style="border: 0.5px solid #ddd; padding: 8px; text-align: left; background: #f5f5f5;">Date/Time</th>';
-                sortedMeds.forEach(med => {
+                sectionMeds.forEach(med => {
                     const displayName = Object.keys(medDefaults).includes(med) ? foodNames[med] || med : med;
                     html += `<th style="border: 0.5px solid #ddd; padding: 8px; text-align: center; background: #f5f5f5; font-size: 12px;"><div style="display: flex; align-items: center; justify-content: center; gap: 4px;">${displayName}<button onclick="deleteMedicationColumn('${med}')" style="padding: 2px 6px; font-size: 10px; background: #fee; color: #c33; border: 0.5px solid #fcc; border-radius: 3px; cursor: pointer;">×</button></div></th>`;
                 });
@@ -1887,7 +1884,7 @@
                     
                     html += `<tr><td style="border-top: ${borderTop}; border-bottom: 0.5px solid #ddd; border-left: 0.5px solid #ddd; border-right: 0.5px solid #ddd; padding: 8px; background: #fafafa; font-weight: 500;">${displayDateTime}</td>`;
                     
-                    sortedMeds.forEach(med => {
+                    sectionMeds.forEach(med => {
                         const medValue = medsByDateTime[dateTime][med];
                         let cellColor = '#ffffff';
                         let cellText = '';
@@ -1937,14 +1934,60 @@
             };
             
             let finalHtml = '';
-            finalHtml += generateTable(morningTimes, '🌅 Morning Medications (Before 1:00 PM)');
-            finalHtml += generateTable(eveningTimes, '🌙 Evening Medications (After 1:00 PM)');
             
-            if (morningTimes.length === 0 && eveningTimes.length === 0) {
+            // Morning medications
+            const morningRecentHtml = generateTable(morningRecent, '🌅 Morning Medications (Before 1:00 PM)');
+            if (morningRecentHtml) finalHtml += morningRecentHtml;
+            
+            if (morningOld.length > 0) {
+                const morningOldHtml = generateTable(morningOld, '🌅 Older Morning Medications');
+                finalHtml += `
+                    <div style="margin-top: 16px;">
+                        <button onclick="toggleOldMeds('morningOld')" style="padding: 8px 12px; font-size: 12px; background: #f0f0f0; border: 0.5px solid #ddd; border-radius: 4px; cursor: pointer; width: 100%;">
+                            <span id="morningOld-arrow">▶</span> Show older morning entries (${morningOld.length})
+                        </button>
+                        <div id="morningOld-content" style="display: none; margin-top: 12px;">
+                            ${morningOldHtml}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Evening medications
+            const eveningRecentHtml = generateTable(eveningRecent, '🌙 Evening Medications (After 1:00 PM)');
+            if (eveningRecentHtml) finalHtml += eveningRecentHtml;
+            
+            if (eveningOld.length > 0) {
+                const eveningOldHtml = generateTable(eveningOld, '🌙 Older Evening Medications');
+                finalHtml += `
+                    <div style="margin-top: 16px;">
+                        <button onclick="toggleOldMeds('eveningOld')" style="padding: 8px 12px; font-size: 12px; background: #f0f0f0; border: 0.5px solid #ddd; border-radius: 4px; cursor: pointer; width: 100%;">
+                            <span id="eveningOld-arrow">▶</span> Show older evening entries (${eveningOld.length})
+                        </button>
+                        <div id="eveningOld-content" style="display: none; margin-top: 12px;">
+                            ${eveningOldHtml}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (!morningRecentHtml && !eveningRecentHtml && morningOld.length === 0 && eveningOld.length === 0) {
                 finalHtml = '<p style="text-align: center; color: #999; padding: 20px;">No medications logged yet.</p>';
             }
             
             document.getElementById('medsHeatmap').innerHTML = finalHtml;
+        }
+        
+        function toggleOldMeds(section) {
+            const content = document.getElementById(`${section}-content`);
+            const arrow = document.getElementById(`${section}-arrow`);
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                arrow.textContent = '▶';
+            }
         }
         
         function switchView(view) {
