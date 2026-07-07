@@ -520,8 +520,17 @@
                 const fileId = await findDriveFile();
                 if (fileId) {
                     const content = await downloadDriveFile(fileId);
-                    entries = content ? JSON.parse(content) : [];
+                    const driveEntries = content ? JSON.parse(content) : [];
+                    
+                    // Merge: keep local entries that aren't on Drive, use Drive entries for duplicates
+                    const driveIds = new Set(driveEntries.map(e => e.id));
+                    const localOnlyEntries = entries.filter(e => !driveIds.has(e.id));
+                    entries = [...driveEntries, ...localOnlyEntries];
+                    
                     try { localStorage.setItem('dogHealthEntries', JSON.stringify(entries)); } catch (e) {}
+                    
+                    // Push the merged result back to Drive so it's in sync
+                    await pushToDrive();
                     renderSummary();
                     setSyncStatus('Synced with Google Drive ✓');
                 } else {
@@ -797,6 +806,40 @@
             document.getElementById('time').value = now.toTimeString().slice(0, 5);
         }
         
+        function setupAutoTimeUpdate() {
+            // Update time when user starts typing in any field (except date/time fields)
+            const inputIds = [
+                'notes',
+                'new-med-name', 'new-med-dosage', 'new-food-name', 'new-food-kcal', 'new-food-target'
+            ];
+            
+            // Add food inputs
+            foodOrder.filter(f => !deletedFoods.includes(f)).forEach(food => {
+                inputIds.push(`food-${food}-start`);
+                inputIds.push(`food-${food}-end`);
+            });
+            
+            // Add med inputs
+            Object.keys(medDefaults).forEach(med => {
+                inputIds.push(`med-${med}`);
+                inputIds.push(`med-${med}-custom-value`);
+            });
+            
+            inputIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    // Update time on focus and input
+                    el.addEventListener('focus', updateTimeToNow);
+                    el.addEventListener('input', updateTimeToNow);
+                }
+            });
+        }
+        
+        function updateTimeToNow() {
+            const now = new Date();
+            document.getElementById('time').value = now.toTimeString().slice(0, 5);
+        }
+        
         function renderFoodInputs() {
             const container = document.getElementById('foods-container');
             container.innerHTML = '';
@@ -1042,6 +1085,9 @@
             customDiv.appendChild(addTrackerDiv);
             
             container.appendChild(customDiv);
+            
+            // Setup auto-time-update for all inputs
+            setupAutoTimeUpdate();
         }
         
         function saveEntry() {
