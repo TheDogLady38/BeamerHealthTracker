@@ -377,8 +377,19 @@
         
         <!-- Food Summary View -->
         <div id="food-summary-view" class="hidden">
-            <div style="margin-bottom: 16px;">
+            <div style="margin-bottom: 16px; display: flex; gap: 12px;">
                 <button onclick="exportToCSV()" style="padding: 10px 16px; font-size: 14px; background: #378ADD; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">📊 Export All Data</button>
+                <select id="timePeriodFilter" onchange="updateTimePeriod()" style="padding: 10px 12px; font-size: 14px; border: 0.5px solid #ddd; border-radius: 8px; cursor: pointer; flex: 1; max-width: 200px;">
+                    <option value="2weeks">Last 2 Weeks</option>
+                    <option value="3weeks">Last 3 Weeks</option>
+                    <option value="1month">Last 1 Month</option>
+                    <option value="2months">Last 2 Months</option>
+                    <option value="3months">Last 3 Months</option>
+                    <option value="4months">Last 4 Months</option>
+                    <option value="5months">Last 5 Months</option>
+                    <option value="6months">Last 6 Months</option>
+                    <option value="all">Entire History</option>
+                </select>
             </div>
             
             <div class="card">
@@ -740,6 +751,9 @@
         let feelingTrendChartInstance = null;
         let fecalChartInstance = null;
         
+        // Time period filter for food summary
+        let selectedTimePeriod = '2weeks';
+        
         // Initialize
         function init() {
             loadEntries();
@@ -815,6 +829,12 @@
                 skipFecalCheckbox.addEventListener('change', (e) => {
                     document.getElementById('fecal-container').style.display = e.target.checked ? 'none' : 'block';
                 });
+            }
+            
+            // Initialize time period dropdown
+            const timePeriodFilter = document.getElementById('timePeriodFilter');
+            if (timePeriodFilter) {
+                timePeriodFilter.value = selectedTimePeriod;
             }
         }
         
@@ -1513,6 +1533,43 @@
             const dailyTotals = getDailyTotals();
             let dates = Object.keys(dailyTotals).sort();
             
+            // Filter dates by selected time period
+            const today = new Date();
+            let cutoffDate = new Date(today);
+            
+            switch(selectedTimePeriod) {
+                case '2weeks':
+                    cutoffDate.setDate(today.getDate() - 14);
+                    break;
+                case '3weeks':
+                    cutoffDate.setDate(today.getDate() - 21);
+                    break;
+                case '1month':
+                    cutoffDate.setMonth(today.getMonth() - 1);
+                    break;
+                case '2months':
+                    cutoffDate.setMonth(today.getMonth() - 2);
+                    break;
+                case '3months':
+                    cutoffDate.setMonth(today.getMonth() - 3);
+                    break;
+                case '4months':
+                    cutoffDate.setMonth(today.getMonth() - 4);
+                    break;
+                case '5months':
+                    cutoffDate.setMonth(today.getMonth() - 5);
+                    break;
+                case '6months':
+                    cutoffDate.setMonth(today.getMonth() - 6);
+                    break;
+                case 'all':
+                    cutoffDate = new Date('1900-01-01');
+                    break;
+            }
+            
+            const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+            dates = dates.filter(date => date >= cutoffDateString);
+            
             // Filter to only include days with actual food, fecal, feeling, or weight data
             dates = dates.filter(date => {
                 let hasData = false;
@@ -1623,7 +1680,8 @@
                         scales: {
                             x: {
                                 stacked: true,
-                                title: { display: false }
+                                title: { display: false },
+                                grid: { display: false }
                             },
                             y: {
                                 stacked: true,
@@ -2237,6 +2295,11 @@
                 content.style.display = 'none';
                 arrow.textContent = '▶';
             }
+        }
+        
+        function updateTimePeriod() {
+            selectedTimePeriod = document.getElementById('timePeriodFilter').value;
+            renderCharts();
         }
         
         function switchView(view) {
