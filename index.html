@@ -303,18 +303,18 @@
                     <label for="skip-fecal" style="margin: 0; cursor: pointer; font-size: 14px; color: #666;">Do not log</label>
                 </div>
                 <div id="fecal-container" class="form-group" style="display: none;">
-                    <label style="margin-bottom: 12px;">Stool consistency rating (1-7)</label>
+                    <label style="margin-bottom: 12px;">Fecal Score (1-7)</label>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <input type="range" id="fecal-score" min="1" max="7" value="4" style="flex: 1; height: 6px; padding: 0;" />
-                        <span id="fecal-value" style="font-size: 16px; font-weight: 500; color: #378ADD; min-width: 30px; text-align: center;">4</span>
+                        <span id="fecal-score-value" style="font-size: 16px; font-weight: 500; color: #BA7517; min-width: 30px; text-align: center;">4</span>
                     </div>
                     <div style="font-size: 12px; color: #999; margin-top: 8px; display: flex; justify-content: space-between;">
-                        <span>Firm (1)</span>
-                        <span>Loose (7)</span>
+                        <span>1 — Firm</span>
+                        <span>7 — Loose</span>
                     </div>
                     <div class="form-group" style="margin-top: 12px;">
                         <label class="small">Note</label>
-                        <textarea id="fecal-note" placeholder="Any observations about stool..." style="min-height: 60px;"></textarea>
+                        <textarea id="fecal-note" placeholder="Any notes about stool..." style="min-height: 50px;"></textarea>
                     </div>
                 </div>
             </div>
@@ -377,21 +377,23 @@
         
         <!-- Food Summary View -->
         <div id="food-summary-view" class="hidden">
-            <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center;">
-                <label for="dateRangeFilter" style="font-size: 14px; font-weight: 500; color: #333; margin: 0;">View:</label>
-                <select id="dateRangeFilter" style="padding: 8px 12px; font-size: 14px; border: 0.5px solid #ddd; border-radius: 8px; flex: 1;">
-                    <option value="2weeks">2 weeks</option>
-                    <option value="3weeks">3 weeks</option>
-                    <option value="1month">1 month</option>
-                    <option value="6weeks">6 weeks</option>
-                    <option value="2months">2 months</option>
-                    <option value="3months">3 months</option>
-                    <option value="4months">4 months</option>
-                    <option value="5months">5 months</option>
-                    <option value="6months">6 months</option>
-                    <option value="entire">Entire History</option>
-                </select>
-                <button onclick="exportToCSV()" style="padding: 8px 16px; font-size: 14px; background: #378ADD; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; white-space: nowrap;">📊 Export</button>
+            <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+                <button onclick="exportToCSV()" style="padding: 10px 16px; font-size: 14px; background: #378ADD; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">📊 Export All Data</button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="chart-range" style="font-size: 13px; color: #666; margin: 0;">Show:</label>
+                    <select id="chart-range" onchange="renderCharts()" style="padding: 8px 12px; font-size: 14px; border: 0.5px solid #ddd; border-radius: 8px;">
+                        <option value="14">2 Weeks</option>
+                        <option value="21">3 Weeks</option>
+                        <option value="30" selected>1 Month</option>
+                        <option value="42">6 Weeks</option>
+                        <option value="60">2 Months</option>
+                        <option value="90">3 Months</option>
+                        <option value="120">4 Months</option>
+                        <option value="150">5 Months</option>
+                        <option value="180">6 Months</option>
+                        <option value="all">Entire History</option>
+                    </select>
+                </div>
             </div>
             
             <div class="card">
@@ -409,16 +411,16 @@
             </div>
             
             <div class="card">
-                <h2>Weight Over Time</h2>
-                <div style="position: relative; height: 300px;">
-                    <canvas id="weightChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card">
                 <h2>Feeling Over Time</h2>
                 <div style="position: relative; height: 300px;">
                     <canvas id="feelingTrendChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Weight Over Time</h2>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="weightChart"></canvas>
                 </div>
             </div>
         </div>
@@ -433,6 +435,7 @@
                 <h2>Medication Schedule</h2>
                 <div id="medsHeatmap" style="overflow-x: auto;"></div>
             </div>
+            
         </div>
         
         <!-- Summary View -->
@@ -752,6 +755,7 @@
         let calorieChartInstance = null;
         let weightChartInstance = null;
         let feelingTrendChartInstance = null;
+        let fecalScoreChartInstance = null;
         
         // Initialize
         function init() {
@@ -790,6 +794,22 @@
             renderFoodInputs();
             renderMedInputs();
             
+            // Add fecal score slider listener
+            const fecalSlider = document.getElementById('fecal-score');
+            if (fecalSlider) {
+                fecalSlider.addEventListener('input', (e) => {
+                    document.getElementById('fecal-score-value').textContent = e.target.value;
+                });
+            }
+            
+            // Add fecal score checkbox listener
+            const skipFecalCheckbox = document.getElementById('skip-fecal');
+            if (skipFecalCheckbox) {
+                skipFecalCheckbox.addEventListener('change', (e) => {
+                    document.getElementById('fecal-container').style.display = e.target.checked ? 'none' : 'block';
+                });
+            }
+            
             // Add feeling slider listener
             const feelingSlider = document.getElementById('feeling');
             if (feelingSlider) {
@@ -812,28 +832,6 @@
                 skipWeightCheckbox.addEventListener('change', (e) => {
                     document.getElementById('weight-container').style.display = e.target.checked ? 'none' : 'block';
                 });
-            }
-
-            // Add fecal score slider listener
-            const fecalSlider = document.getElementById('fecal-score');
-            if (fecalSlider) {
-                fecalSlider.addEventListener('input', (e) => {
-                    document.getElementById('fecal-value').textContent = e.target.value;
-                });
-            }
-
-            // Add fecal score checkbox listener
-            const skipFecalCheckbox = document.getElementById('skip-fecal');
-            if (skipFecalCheckbox) {
-                skipFecalCheckbox.addEventListener('change', (e) => {
-                    document.getElementById('fecal-container').style.display = e.target.checked ? 'none' : 'block';
-                });
-            }
-
-            // Add date range filter listener
-            const dateRangeFilter = document.getElementById('dateRangeFilter');
-            if (dateRangeFilter) {
-                dateRangeFilter.addEventListener('change', renderCharts);
             }
         }
         
@@ -1191,19 +1189,21 @@
             const newMedDosage = document.getElementById('new-med-dosage')?.value?.trim() || '';
             const addToTracker = document.getElementById('add-to-tracker')?.checked || false;
             
+            let newMedKey = null;
             if (newMedName && newMedDosage && addToTracker) {
                 // Create a new medication key from the name
-                const medKey = newMedName.toLowerCase().replace(/\s+/g, '_');
+                newMedKey = newMedName.toLowerCase().replace(/\s+/g, '_');
                 
                 // Check if it doesn't already exist
-                if (!medDefaults[medKey]) {
-                    medDefaults[medKey] = [newMedDosage];
+                if (!medDefaults[newMedKey]) {
+                    medDefaults[newMedKey] = [newMedDosage];
                     saveCustomMedications();
                     // Re-render to show the new medication
                     renderMedInputs();
                     alert(`"${newMedName}" has been added to your medications!`);
                 } else {
                     alert(`"${newMedName}" already exists in your tracker.`);
+                    newMedKey = null;
                 }
             }
             
@@ -1232,23 +1232,27 @@
                 }
             });
             
-            // Always save the new medication if entered (regardless of "Add to tracker" checkbox)
-            if (newMedName && newMedDosage) {
+            // If a new medication was added with "Add to tracker", record it in this entry
+            if (newMedKey && medications[newMedKey] !== undefined) {
+                medications[newMedKey] = newMedDosage;
+                medications.other = '';
+            } else if (newMedName && newMedDosage && !addToTracker) {
+                // Only save to "other" if NOT adding to tracker
                 medications.other = `${newMedName} ${newMedDosage}`;
             } else {
                 medications.other = '';
-            }
-            
-            let feeling = null;
-            if (!document.getElementById('skip-feeling').checked) {
-                feeling = parseInt(document.getElementById('feeling').value);
             }
             
             let fecalScore = null;
             let fecalNote = '';
             if (!document.getElementById('skip-fecal').checked) {
                 fecalScore = parseInt(document.getElementById('fecal-score').value);
-                fecalNote = document.getElementById('fecal-note').value;
+                fecalNote = document.getElementById('fecal-note').value || '';
+            }
+            
+            let feeling = null;
+            if (!document.getElementById('skip-feeling').checked) {
+                feeling = parseInt(document.getElementById('feeling').value);
             }
             
             let weight = null;
@@ -1269,9 +1273,9 @@
                 time,
                 foods,
                 medications,
-                feeling,
                 fecalScore,
                 fecalNote,
+                feeling,
                 weight,
                 notes: document.getElementById('notes').value
             };
@@ -1287,7 +1291,6 @@
             renderMedInputs();
             clearForm();
             renderSummary();
-            renderCharts();
             
             // Clear manual edit flags for next entry
             localStorage.removeItem('timeManuallyEdited');
@@ -1299,17 +1302,17 @@
             document.getElementById('date').value = '';
             document.getElementById('time').value = '';
             document.getElementById('notes').value = '';
+            document.getElementById('skip-fecal').checked = true;
+            document.getElementById('fecal-container').style.display = 'none';
+            document.getElementById('fecal-score').value = 4;
+            document.getElementById('fecal-score-value').textContent = '4';
+            document.getElementById('fecal-note').value = '';
             document.getElementById('skip-feeling').checked = true;
             document.getElementById('skip-weight').checked = true;
-            document.getElementById('skip-fecal').checked = true;
             document.getElementById('feeling-container').style.display = 'none';
             document.getElementById('weight-container').style.display = 'none';
-            document.getElementById('fecal-container').style.display = 'none';
             document.getElementById('feeling').value = 7;
             document.getElementById('feeling-value').textContent = '7';
-            document.getElementById('fecal-score').value = 4;
-            document.getElementById('fecal-value').textContent = '4';
-            document.getElementById('fecal-note').value = '';
             
             // Clear new medication fields
             const newMedName = document.getElementById('new-med-name');
@@ -1405,7 +1408,6 @@
                 entries = entries.filter(e => e.id !== idToDelete);
                 saveEntries();
                 renderSummary();
-                renderCharts();
             }
         }
         
@@ -1459,6 +1461,15 @@
                 }
             });
             
+            // Load fecal score data
+            if (entry.fecalScore !== null && entry.fecalScore !== undefined) {
+                document.getElementById('skip-fecal').checked = false;
+                document.getElementById('fecal-container').style.display = 'block';
+                document.getElementById('fecal-score').value = entry.fecalScore;
+                document.getElementById('fecal-score-value').textContent = entry.fecalScore;
+                document.getElementById('fecal-note').value = entry.fecalNote || '';
+            }
+            
             // Load feeling data
             if (entry.feeling !== null && entry.feeling !== undefined) {
                 document.getElementById('skip-feeling').checked = false;
@@ -1474,15 +1485,6 @@
                 document.getElementById('weight').value = entry.weight.amount;
                 document.getElementById('weight-unit').value = entry.weight.unit;
                 document.getElementById('weight-location').value = entry.weight.location || '';
-            }
-
-            // Load fecal score data
-            if (entry.fecalScore !== null && entry.fecalScore !== undefined) {
-                document.getElementById('skip-fecal').checked = false;
-                document.getElementById('fecal-container').style.display = 'block';
-                document.getElementById('fecal-score').value = entry.fecalScore;
-                document.getElementById('fecal-value').textContent = entry.fecalScore;
-                document.getElementById('fecal-note').value = entry.fecalNote || '';
             }
             
             // Load notes
@@ -1529,101 +1531,62 @@
             return breakdown;
         }
         
-        function getDateRangeString() {
-            const range = document.getElementById('dateRangeFilter')?.value || '2weeks';
-            if (range === 'entire') return '1970-01-01';
-            
-            const today = new Date();
-            let d = new Date(today);
-            switch(range) {
-                case '2weeks':  d.setDate(today.getDate() - 14); break;
-                case '3weeks':  d.setDate(today.getDate() - 21); break;
-                case '1month':  d.setMonth(today.getMonth() - 1); break;
-                case '6weeks':  d.setDate(today.getDate() - 42); break;
-                case '2months': d.setMonth(today.getMonth() - 2); break;
-                case '3months': d.setMonth(today.getMonth() - 3); break;
-                case '4months': d.setMonth(today.getMonth() - 4); break;
-                case '5months': d.setMonth(today.getMonth() - 5); break;
-                case '6months': d.setMonth(today.getMonth() - 6); break;
-            }
-            // Return as YYYY-MM-DD string for safe string comparison
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
+        function getChartDateRange(allDates) {
+            const rangeSelect = document.getElementById('chart-range');
+            const rangeValue = rangeSelect ? rangeSelect.value : '30';
+            if (rangeValue === 'all') return allDates;
+            const days = parseInt(rangeValue);
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - days);
+            const cutoffStr = cutoff.toISOString().split('T')[0];
+            return allDates.filter(d => d >= cutoffStr);
         }
-
-        function renderCharts() {
-            const startDateStr = getDateRangeString();
-
-            // Build food data
-            const dailyTotals = getDailyTotals();
-            let foodDates = Object.keys(dailyTotals).sort().filter(date => date >= startDateStr);
-
-            // Only keep days with actual food amounts logged
-            foodDates = foodDates.filter(date => {
-                return entries.some(entry => {
-                    if (entry.date !== date) return false;
-                    return Object.keys(entry.foods).some(food => {
-                        const start = parseFloat(entry.foods[food].start) || 0;
-                        const end = parseFloat(entry.foods[food].end) || 0;
-                        return start > 0 || end > 0;
-                    });
+        
+        function getDailyFoodDetails(date) {
+            const details = [];
+            entries.filter(e => e.date === date).forEach(entry => {
+                Object.keys(entry.foods).forEach(food => {
+                    const start = parseFloat(entry.foods[food].start) || 0;
+                    const end = parseFloat(entry.foods[food].end) || 0;
+                    if (start > 0 || end > 0) {
+                        const consumed = Math.max(0, start - end);
+                        const cal = Math.round(consumed * (foodCalories[food] || 0) * 10) / 10;
+                        details.push({ name: foodNames[food] || food, startG: start, endG: end, consumedG: consumed, cal });
+                    }
                 });
             });
-
-            // Get all dates with weight data
-            const weightByDate = {};
-            entries.forEach(entry => {
-                if (entry.weight && entry.weight.amount && !weightByDate[entry.date]) {
-                    weightByDate[entry.date] = {
-                        weight: entry.weight.amount,
-                        unit: entry.weight.unit,
-                        location: entry.weight.location
-                    };
-                }
+            return details;
+        }
+        
+        function renderCharts() {
+            const dailyTotals = getDailyTotals();
+            let allFoodDates = Object.keys(dailyTotals).sort();
+            
+            // Filter to only include days with actual food data
+            allFoodDates = allFoodDates.filter(date => {
+                let hasData = false;
+                entries.forEach(entry => {
+                    if (entry.date === date) {
+                        Object.keys(entry.foods).forEach(food => {
+                            const start = parseFloat(entry.foods[food].start) || 0;
+                            const end = parseFloat(entry.foods[food].end) || 0;
+                            if (start > 0 || end > 0) {
+                                hasData = true;
+                            }
+                        });
+                    }
+                });
+                return hasData;
             });
-            const weightDates = Object.keys(weightByDate).sort().filter(date => date >= startDateStr);
-
-            // Get all dates with fecal data
-            const fecalByDay = {};
-            const fecalNotesByDay = {};
-            entries.forEach(entry => {
-                if (!fecalByDay[entry.date]) {
-                    fecalByDay[entry.date] = [];
-                    fecalNotesByDay[entry.date] = [];
-                }
-                if (entry.fecalScore !== null && entry.fecalScore !== undefined) {
-                    fecalByDay[entry.date].push(entry.fecalScore);
-                    fecalNotesByDay[entry.date].push(entry.fecalNote || '');
-                }
-            });
-            const fecalDates = Object.keys(fecalByDay).filter(date => fecalByDay[date].length > 0 && date >= startDateStr).sort();
-
-            // Get all dates with feeling data
-            const feelingByDay = {};
-            const feelingNotesByDay = {};
-            entries.forEach(entry => {
-                if (!feelingByDay[entry.date]) {
-                    feelingByDay[entry.date] = [];
-                    feelingNotesByDay[entry.date] = [];
-                }
-                if (entry.feeling !== null && entry.feeling !== undefined) {
-                    feelingByDay[entry.date].push(entry.feeling);
-                    feelingNotesByDay[entry.date].push(entry.notes || '');
-                }
-            });
-            const feelingDates = Object.keys(feelingByDay).filter(date => feelingByDay[date].length > 0 && date >= startDateStr).sort();
-
-            // Create unified date array - all dates that have ANY data
-            const allDatesSet = new Set([...foodDates, ...weightDates, ...fecalDates, ...feelingDates]);
-            const unifiedDates = Array.from(allDatesSet).sort();
-
-            if (unifiedDates.length === 0) {
+            
+            // Apply date range filter — this is the master date axis
+            const dates = getChartDateRange(allFoodDates);
+            
+            if (dates.length === 0) {
                 document.getElementById('calorieChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
-                document.getElementById('weightChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
-                document.getElementById('fecalScoreChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
-                document.getElementById('feelingTrendChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No data yet. Add some entries first.</p>';
+                document.getElementById('weightChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No weight data for this period.</p>';
+                document.getElementById('fecalScoreChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No fecal score data for this period.</p>';
+                document.getElementById('feelingTrendChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No feeling data for this period.</p>';
                 return;
             }
             
@@ -1635,7 +1598,7 @@
             
             // Use requestAnimationFrame to ensure DOM is updated before accessing canvas
             requestAnimationFrame(() => {
-                // Calorie Chart - Stacked by Food Type
+                // ===== CALORIE CHART =====
                 const calorieCanvas = document.getElementById('calorieChart');
                 if (!calorieCanvas) return;
                 
@@ -1644,18 +1607,10 @@
                     calorieChartInstance.destroy();
                 }
                 
-                // Collect all foods ever logged across all entries (including deleted)
                 const allFoodsEver = new Set();
                 entries.forEach(entry => Object.keys(entry.foods).forEach(f => allFoodsEver.add(f)));
                 const foodTypesList = Array.from(allFoodsEver);
                 
-                // If no foods have ever been logged, show message
-                if (foodTypesList.length === 0) {
-                    document.getElementById('calorieChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No food data yet.</p>';
-                    return;
-                }
-                
-                // Assign colors — use defaults for known foods, generate for custom
                 const baseColors = ['#378ADD', '#639922', '#BA7517', '#D4537E', '#9B59B6', '#E67E22', '#1ABC9C', '#E74C3C'];
                 const foodColors = {};
                 const defaultColorMap = { farmersDog: '#378ADD', wynwood: '#639922', homemadeChicken: '#BA7517', homemadeBeef: '#D4537E' };
@@ -1664,9 +1619,8 @@
                     foodColors[f] = defaultColorMap[f] || baseColors[colorIdx++ % baseColors.length];
                 });
                 
-                // Calculate calories by food type for each day (using unified dates)
                 const caloriesByFoodByDay = {};
-                unifiedDates.forEach(date => {
+                dates.forEach(date => {
                     caloriesByFoodByDay[date] = {};
                     foodTypesList.forEach(food => {
                         caloriesByFoodByDay[date][food] = 0;
@@ -1684,36 +1638,24 @@
                     }
                 });
                 
-                // Create datasets for stacked chart
+                // Pre-compute daily food details for tooltips
+                const dailyFoodDetailsMap = {};
+                dates.forEach(date => {
+                    dailyFoodDetailsMap[date] = getDailyFoodDetails(date);
+                });
+                
                 const calorieDatasets = foodTypesList.map(food => ({
                     label: foodNames[food] || food,
-                    data: unifiedDates.map(date => Math.round(caloriesByFoodByDay[date][food] * 10) / 10),
+                    data: dates.map(date => Math.round(caloriesByFoodByDay[date][food] * 10) / 10),
                     backgroundColor: foodColors[food],
                     borderColor: '#fff',
                     borderWidth: 1
                 }));
                 
-                // Build entry data for tooltip
-                const calorieEntryData = {};
-                unifiedDates.forEach(date => {
-                    const dayEntries = entries.filter(e => e.date === date);
-                    let totalStart = 0;
-                    let totalConsumed = 0;
-                    dayEntries.forEach(entry => {
-                        Object.keys(entry.foods).forEach(food => {
-                            const start = parseFloat(entry.foods[food].start) || 0;
-                            const end = parseFloat(entry.foods[food].end) || 0;
-                            totalStart += start;
-                            totalConsumed += Math.max(0, start - end);
-                        });
-                    });
-                    calorieEntryData[date] = { start: totalStart, consumed: totalConsumed };
-                });
-
                 calorieChartInstance = new Chart(calorieCtx, {
                     type: 'bar',
                     data: {
-                        labels: unifiedDates,
+                        labels: dates,
                         datasets: calorieDatasets
                     },
                     options: {
@@ -1722,7 +1664,8 @@
                         scales: {
                             x: {
                                 stacked: true,
-                                title: { display: false }
+                                title: { display: false },
+                                grid: { display: false }
                             },
                             y: {
                                 stacked: true,
@@ -1738,13 +1681,19 @@
                             },
                             tooltip: {
                                 callbacks: {
-                                    afterLabel: function(context) {
-                                        const date = context.label;
-                                        const data = calorieEntryData[date];
-                                        if (data) {
-                                            return `Started: ${Math.round(data.start)}g\nAte: ${Math.round(data.consumed)}g`;
-                                        }
-                                        return '';
+                                    title: function(tooltipItems) {
+                                        return tooltipItems[0].label;
+                                    },
+                                    afterBody: function(tooltipItems) {
+                                        const date = tooltipItems[0].label;
+                                        const hoveredFoodName = tooltipItems[0].dataset.label;
+                                        const details = dailyFoodDetailsMap[date] || [];
+                                        if (details.length === 0) return '';
+                                        // Filter to only the hovered food
+                                        const hoveredFood = details.find(d => d.name === hoveredFoodName);
+                                        if (!hoveredFood) return '';
+                                        const lines = [`${hoveredFood.name}: ${hoveredFood.startG}g → ${hoveredFood.endG}g (ate ${hoveredFood.consumedG}g = ${hoveredFood.cal} kCal)`];
+                                        return lines;
                                     }
                                 }
                             }
@@ -1778,7 +1727,203 @@
                     ]
                 });
                 
-                // Weight Chart
+                // ===== FECAL SCORE CHART (aligned to same dates axis) =====
+                const fecalCanvas = document.getElementById('fecalScoreChart');
+                if (fecalCanvas) {
+                    const fecalCtx = fecalCanvas.getContext('2d');
+                    if (fecalScoreChartInstance) {
+                        fecalScoreChartInstance.destroy();
+                    }
+                    
+                    // Build fecal data aligned to the master dates axis
+                    const fecalByDate = {};
+                    const fecalNotesByDate = {};
+                    entries.forEach(entry => {
+                        if (entry.fecalScore !== null && entry.fecalScore !== undefined) {
+                            if (!fecalByDate[entry.date]) {
+                                fecalByDate[entry.date] = [];
+                                fecalNotesByDate[entry.date] = [];
+                            }
+                            fecalByDate[entry.date].push(entry.fecalScore);
+                            if (entry.fecalNote) fecalNotesByDate[entry.date].push(entry.fecalNote);
+                        }
+                    });
+                    
+                    // Use master dates, put null where no fecal data
+                    const fecalData = dates.map(date => {
+                        const scores = fecalByDate[date];
+                        if (scores && scores.length > 0) {
+                            return Math.round((scores.reduce((a, b) => a + b) / scores.length) * 10) / 10;
+                        }
+                        return null;
+                    });
+                    
+                    fecalScoreChartInstance = new Chart(fecalCtx, {
+                        type: 'line',
+                        data: {
+                            labels: dates,
+                            datasets: [{
+                                label: 'Fecal Score (1=Firm, 7=Loose)',
+                                data: fecalData,
+                                borderColor: '#BA7517',
+                                backgroundColor: 'rgba(186, 117, 23, 0.1)',
+                                borderWidth: 3,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 6,
+                                pointBackgroundColor: '#BA7517',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointHoverRadius: 10,
+                                spanGaps: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { title: { display: false }, grid: { display: false } },
+                                y: {
+                                    beginAtZero: false,
+                                    min: 1,
+                                    max: 7,
+                                    ticks: { stepSize: 1 },
+                                    title: { display: true, text: 'Fecal Score' }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: true, labels: { font: { size: 12 } } },
+                                tooltip: {
+                                    callbacks: {
+                                        title: function(items) { return items[0].label; },
+                                        label: function(context) {
+                                            return `Score: ${context.parsed.y}`;
+                                        },
+                                        afterBody: function(items) {
+                                            const date = items[0].label;
+                                            const notes = fecalNotesByDate[date];
+                                            if (notes && notes.length > 0) {
+                                                return ['Note: ' + notes.join('; ')];
+                                            }
+                                            return [];
+                                        }
+                                    }
+                                }
+                            },
+                            onClick: function(evt, elements) {
+                                if (elements.length > 0) {
+                                    const idx = elements[0].index;
+                                    const date = dates[idx];
+                                    const score = fecalData[idx];
+                                    const notes = fecalNotesByDate[date] || [];
+                                    const foodDetails = dailyFoodDetailsMap[date] || [];
+                                    let msg = `📅 ${date}\n🪧 Fecal Score: ${score}/7\n`;
+                                    if (notes.length > 0) msg += `📝 Note: ${notes.join('; ')}\n`;
+                                    if (foodDetails.length > 0) {
+                                        msg += '\n🍽️ Food:\n';
+                                        foodDetails.forEach(d => {
+                                            msg += `  ${d.name}: ${d.consumedG}g (${d.cal} kCal)\n`;
+                                        });
+                                    }
+                                    alert(msg);
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // ===== FEELING CHART (aligned to same dates axis) =====
+                const feelingCanvas = document.getElementById('feelingTrendChart');
+                if (feelingCanvas) {
+                    const feelingCtx = feelingCanvas.getContext('2d');
+                    if (feelingTrendChartInstance) {
+                        feelingTrendChartInstance.destroy();
+                    }
+                    
+                    const feelingByDay = getFeelingByDay();
+                    
+                    // Collect notes by date
+                    const notesByDate = {};
+                    entries.forEach(entry => {
+                        if (entry.notes && entry.notes.trim()) {
+                            if (!notesByDate[entry.date]) notesByDate[entry.date] = [];
+                            notesByDate[entry.date].push(entry.notes.trim());
+                        }
+                    });
+                    
+                    // Use master dates, null where no feeling data
+                    const feelingData = dates.map(date => {
+                        const val = feelingByDay[date];
+                        return (val !== null && val !== undefined) ? val : null;
+                    });
+                    
+                    feelingTrendChartInstance = new Chart(feelingCtx, {
+                        type: 'line',
+                        data: {
+                            labels: dates,
+                            datasets: [{
+                                label: 'How He\'s Feeling',
+                                data: feelingData,
+                                borderColor: '#D4537E',
+                                backgroundColor: 'rgba(212, 83, 126, 0.1)',
+                                borderWidth: 3,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 6,
+                                pointBackgroundColor: '#D4537E',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointHoverRadius: 10,
+                                spanGaps: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { title: { display: false }, grid: { display: false } },
+                                y: {
+                                    beginAtZero: true,
+                                    min: 0,
+                                    max: 10,
+                                    title: { display: true, text: 'Feeling (1-10)' }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: true, labels: { font: { size: 12 } } },
+                                tooltip: {
+                                    callbacks: {
+                                        title: function(items) { return items[0].label; },
+                                        label: function(context) {
+                                            return `Feeling: ${context.parsed.y}/10`;
+                                        },
+                                        afterBody: function(items) {
+                                            const date = items[0].label;
+                                            const notes = notesByDate[date];
+                                            if (notes && notes.length > 0) {
+                                                return ['Note: ' + notes.join('; ')];
+                                            }
+                                            return [];
+                                        }
+                                    }
+                                }
+                            },
+                            onClick: function(evt, elements) {
+                                if (elements.length > 0) {
+                                    const idx = elements[0].index;
+                                    const date = dates[idx];
+                                    const feeling = feelingData[idx];
+                                    const notes = notesByDate[date] || [];
+                                    let msg = `📅 ${date}\n😊 Feeling: ${feeling}/10\n`;
+                                    if (notes.length > 0) msg += `📝 Notes: ${notes.join('; ')}`;
+                                    alert(msg);
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // ===== WEIGHT CHART (aligned to same dates axis) =====
                 const weightCanvas = document.getElementById('weightChart');
                 if (!weightCanvas) return;
                 
@@ -1787,19 +1932,36 @@
                     weightChartInstance.destroy();
                 }
                 
-                const weightUnit = weightDates.length > 0 ? weightByDate[weightDates[0]].unit : 'lbs';
+                const weightByDate = {};
+                entries.forEach(entry => {
+                    if (entry.weight && entry.weight.amount) {
+                        if (!weightByDate[entry.date]) {
+                            weightByDate[entry.date] = {
+                                weight: entry.weight.amount,
+                                unit: entry.weight.unit,
+                                location: entry.weight.location
+                            };
+                        }
+                    }
+                });
                 
-                // Create weight data for unified dates (null for missing dates)
-                const weightValues = unifiedDates.map(date => weightByDate[date] ? weightByDate[date].weight : null);
+                const weightUnit = Object.keys(weightByDate).length > 0 ? Object.values(weightByDate)[0].unit : 'lbs';
                 
-                if (weightDates.length > 0) {
+                // Use master dates axis, null where no weight data
+                const weightData = dates.map(date => {
+                    return weightByDate[date] ? weightByDate[date].weight : null;
+                });
+                
+                const hasWeightData = weightData.some(v => v !== null);
+                
+                if (hasWeightData) {
                     weightChartInstance = new Chart(weightCtx, {
                         type: 'line',
                         data: {
-                            labels: unifiedDates,
+                            labels: dates,
                             datasets: [{
                                 label: `Weight (${weightUnit})`,
-                                data: weightValues,
+                                data: weightData,
                                 borderColor: '#639922',
                                 backgroundColor: 'rgba(99, 153, 34, 0.1)',
                                 borderWidth: 3,
@@ -1817,9 +1979,7 @@
                             responsive: true,
                             maintainAspectRatio: false,
                             scales: {
-                                x: {
-                                    title: { display: false }
-                                },
+                                x: { title: { display: false }, grid: { display: false } },
                                 y: {
                                     beginAtZero: false,
                                     title: { display: true, text: `Weight (${weightUnit})` }
@@ -1829,162 +1989,20 @@
                                 legend: {
                                     display: true,
                                     labels: { font: { size: 12 } }
-                                }
-                            }
-                        }
-                    });
-                } else {
-                    document.getElementById('weightChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No weight data yet.</p>';
-                }
-
-                // Fecal Score Chart
-                const fecalCanvas = document.getElementById('fecalScoreChart');
-                if (fecalCanvas) {
-                    const fecalCtx = fecalCanvas.getContext('2d');
-                    
-                    // Create fecal data for unified dates (null for missing dates)
-                    const fecalValues = unifiedDates.map(date => {
-                        if (fecalByDay[date] && fecalByDay[date].length > 0) {
-                            const scores = fecalByDay[date];
-                            return Math.round((scores.reduce((a, b) => a + b) / scores.length) * 10) / 10;
-                        }
-                        return null;
-                    });
-                    
-                    if (fecalDates.length > 0) {
-                        new Chart(fecalCtx, {
-                            type: 'line',
-                            data: {
-                                labels: unifiedDates,
-                                datasets: [{
-                                    label: 'Fecal Score (1=Firm, 7=Loose)',
-                                    data: fecalValues,
-                                    borderColor: '#BA7517',
-                                    backgroundColor: 'rgba(186, 117, 23, 0.1)',
-                                    borderWidth: 3,
-                                    tension: 0.4,
-                                    fill: true,
-                                    pointRadius: 6,
-                                    pointBackgroundColor: '#BA7517',
-                                    pointBorderColor: '#fff',
-                                    pointBorderWidth: 2,
-                                    pointHoverRadius: 8,
-                                    spanGaps: true
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    x: {
-                                        title: { display: false }
-                                    },
-                                    y: {
-                                        beginAtZero: true,
-                                        min: 1,
-                                        max: 7,
-                                        title: { display: true, text: 'Score (1-7)' }
-                                    }
                                 },
-                                plugins: {
-                                    legend: {
-                                        display: true,
-                                        labels: { font: { size: 12 } }
-                                    },
-                                    tooltip: {
-                                        callbacks: {
-                                            afterLabel: function(context) {
-                                                const date = context.label;
-                                                const notes = fecalNotesByDay[date];
-                                                if (notes && notes.length > 0) {
-                                                    const note = notes[0];
-                                                    return note ? `Note: ${note}` : '';
-                                                }
-                                                return '';
-                                            }
+                                tooltip: {
+                                    callbacks: {
+                                        afterLabel: function(context) {
+                                            const date = dates[context.dataIndex];
+                                            const w = weightByDate[date];
+                                            if (w && w.location) return `Location: ${w.location}`;
+                                            return '';
                                         }
                                     }
                                 }
                             }
-                        });
-                    } else {
-                        document.getElementById('fecalScoreChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No fecal score data yet.</p>';
-                    }
-                }
-
-                // Feeling Over Time Chart
-                const feelingCanvas = document.getElementById('feelingTrendChart');
-                if (feelingCanvas) {
-                    const feelingCtx = feelingCanvas.getContext('2d');
-                    
-                    // Create feeling data for unified dates (null for missing dates)
-                    const feelingValues = unifiedDates.map(date => {
-                        if (feelingByDay[date] && feelingByDay[date].length > 0) {
-                            const feelings = feelingByDay[date];
-                            return Math.round((feelings.reduce((a, b) => a + b) / feelings.length) * 10) / 10;
                         }
-                        return null;
                     });
-                    
-                    if (feelingDates.length > 0) {
-                        new Chart(feelingCtx, {
-                            type: 'line',
-                            data: {
-                                labels: unifiedDates,
-                                datasets: [{
-                                    label: 'How He\'s Feeling',
-                                    data: feelingValues,
-                                    borderColor: '#D4537E',
-                                    backgroundColor: 'rgba(212, 83, 126, 0.1)',
-                                    borderWidth: 3,
-                                    tension: 0.4,
-                                    fill: true,
-                                    pointRadius: 6,
-                                    pointBackgroundColor: '#D4537E',
-                                    pointBorderColor: '#fff',
-                                    pointBorderWidth: 2,
-                                    pointHoverRadius: 8,
-                                    spanGaps: true
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    x: {
-                                        title: { display: false }
-                                    },
-                                    y: {
-                                        beginAtZero: true,
-                                        min: 0,
-                                        max: 10,
-                                        title: { display: true, text: 'Feeling (1-10)' }
-                                    }
-                                },
-                                plugins: {
-                                    legend: {
-                                        display: true,
-                                        labels: { font: { size: 12 } }
-                                    },
-                                    tooltip: {
-                                        callbacks: {
-                                            afterLabel: function(context) {
-                                                const date = context.label;
-                                                const notes = feelingNotesByDay[date];
-                                                if (notes && notes.length > 0) {
-                                                    const note = notes[0];
-                                                    return note ? `Note: ${note}` : '';
-                                                }
-                                                return '';
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    } else {
-                        document.getElementById('feelingTrendChart').parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No feeling data yet.</p>';
-                    }
                 }
             });
         }
@@ -2053,7 +2071,7 @@
             
             entries.forEach(entry => {
                 const dateTime = `${entry.date} ${entry.time}`;
-                medsByDateTime[dateTime] = {};
+                if (!medsByDateTime[dateTime]) medsByDateTime[dateTime] = {};
                 
                 Object.keys(medDefaults).forEach(med => {
                     if (entry.medications[med]) {
@@ -2336,7 +2354,7 @@
             Array.from(allMedsEver).sort().forEach(med => {
                 header += `,${med.charAt(0).toUpperCase() + med.slice(1)}`;
             });
-            header += ',Other Medications,Weight,Weight Unit,Weight Location,Feeling,Fecal Score,Fecal Note,Notes\n';
+            header += ',Other Medications,Fecal Score,Fecal Note,Weight,Weight Unit,Weight Location,Feeling,Notes\n';
             
             let csv = header;
             
@@ -2365,6 +2383,9 @@
                 });
                 row.push(entry.medications.other || '');
                 
+                row.push(entry.fecalScore !== null && entry.fecalScore !== undefined ? entry.fecalScore : '');
+                row.push(`"${(entry.fecalNote || '').replace(/"/g, '""')}"`);
+                
                 if (entry.weight && entry.weight.amount) {
                     row.push(entry.weight.amount);
                     row.push(entry.weight.unit);
@@ -2374,8 +2395,6 @@
                 }
                 
                 row.push(entry.feeling !== null && entry.feeling !== undefined ? entry.feeling : '');
-                row.push(entry.fecalScore !== null && entry.fecalScore !== undefined ? entry.fecalScore : '');
-                row.push(`"${(entry.fecalNote || '').replace(/"/g, '""')}"`);
                 row.push(`"${(entry.notes || '').replace(/"/g, '""')}"`);
                 
                 const csvRow = row.map(val => {
