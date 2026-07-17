@@ -1689,10 +1689,13 @@
                                         const hoveredFoodName = tooltipItems[0].dataset.label;
                                         const details = dailyFoodDetailsMap[date] || [];
                                         if (details.length === 0) return '';
-                                        // Filter to only the hovered food
-                                        const hoveredFood = details.find(d => d.name === hoveredFoodName);
-                                        if (!hoveredFood) return '';
-                                        const lines = [`${hoveredFood.name}: ${hoveredFood.startG}g → ${hoveredFood.endG}g (ate ${hoveredFood.consumedG}g = ${hoveredFood.cal} kCal)`];
+                                        // Filter to get ALL entries of the hovered food
+                                        const hoveredFoods = details.filter(d => d.name === hoveredFoodName);
+                                        if (hoveredFoods.length === 0) return '';
+                                        const lines = [];
+                                        hoveredFoods.forEach(food => {
+                                            lines.push(`${food.name}: ${food.startG}g → ${food.endG}g (ate ${food.consumedG}g = ${food.cal} kCal)`);
+                                        });
                                         return lines;
                                     }
                                 }
