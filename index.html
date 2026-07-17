@@ -1705,7 +1705,7 @@
                                     data: fecalValues,
                                     borderColor: '#BA7517',
                                     backgroundColor: 'rgba(186, 117, 23, 0.1)',
-                                    borderWidth: 3,
+                                    borderWidth: 1,
                                     tension: 0.4,
                                     fill: true,
                                     pointRadius: 6,
@@ -1713,13 +1713,16 @@
                                     pointBorderColor: '#fff',
                                     pointBorderWidth: 2,
                                     pointHoverRadius: 8,
-                                    spanGaps: false
+                                    spanGaps: true
                                 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 scales: {
+                                    x: {
+                                        grid: { display: false }
+                                    },
                                     y: {
                                         beginAtZero: true,
                                         min: 0,
@@ -1792,7 +1795,7 @@
                                     data: weightValues,
                                     borderColor: '#639922',
                                     backgroundColor: 'rgba(99, 153, 34, 0.1)',
-                                    borderWidth: 3,
+                                    borderWidth: 1,
                                     tension: 0.4,
                                     fill: true,
                                     pointRadius: 6,
@@ -1800,13 +1803,16 @@
                                     pointBorderColor: '#fff',
                                     pointBorderWidth: 2,
                                     pointHoverRadius: 8,
-                                    spanGaps: false
+                                    spanGaps: true
                                 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 scales: {
+                                    x: {
+                                        grid: { display: false }
+                                    },
                                     y: {
                                         beginAtZero: false,
                                         title: { display: true, text: `Weight (${weightUnit})` }
@@ -1873,7 +1879,7 @@
                                     data: feelingValues,
                                     borderColor: '#D4537E',
                                     backgroundColor: 'rgba(212, 83, 126, 0.1)',
-                                    borderWidth: 3,
+                                    borderWidth: 1,
                                     tension: 0.4,
                                     fill: true,
                                     pointRadius: 6,
@@ -1881,13 +1887,16 @@
                                     pointBorderColor: '#fff',
                                     pointBorderWidth: 2,
                                     pointHoverRadius: 8,
-                                    spanGaps: false
+                                    spanGaps: true
                                 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 scales: {
+                                    x: {
+                                        grid: { display: false }
+                                    },
                                     y: {
                                         beginAtZero: true,
                                         min: 0,
